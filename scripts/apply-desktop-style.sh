@@ -144,7 +144,7 @@ create_input_indicator_icon() {
   cat > "$icon_path" <<'EOF'
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
   <rect width="64" height="64" fill="none"/>
-  <text x="32" y="39" text-anchor="middle" font-family="Segoe UI, Noto Sans, Arial, sans-serif" font-size="23" font-weight="600" fill="#f8fafc">ENG</text>
+  <text x="32" y="41" text-anchor="middle" font-family="Segoe UI, Noto Sans, Arial, sans-serif" font-size="27" font-weight="700" fill="#f8fafc">ENG</text>
 </svg>
 EOF
   printf '%s\n' "$icon_path"
@@ -507,7 +507,8 @@ apply_xfce_taskbar() {
 
   input_icon="$(create_input_indicator_icon)"
   input_command="$(input_menu_command)"
-  if create_panel_launcher "$id" "input-language.desktop" "ENG" "$input_command" "$input_icon" "Utility;"; then
+  if create_panel_launcher "$id" "input-language.desktop" "ENG" "$input_command" "$input_icon" "Utility;" "true"; then
+    xfconf_set xfce4-panel "/plugins/plugin-$id/disable-tooltips" bool "true"
     ids+=("$id")
     id=$((id + 1))
   fi

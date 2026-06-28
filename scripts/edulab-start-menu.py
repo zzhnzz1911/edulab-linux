@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import re
+import signal
 import shlex
 import shutil
 import subprocess
@@ -18,6 +19,7 @@ TASKBAR_HEIGHT = 40
 HEIGHT = MENU_HEIGHT + TASKBAR_HEIGHT
 START_BUTTON_WIDTH = 48
 TASKBAR_SEARCH_WIDTH = 230
+START_MENU_PID_FILE = f"/tmp/edulab-start-menu-{os.getuid()}.pid"
 TASKBAR_SEARCH_PID_FILE = f"/tmp/edulab-taskbar-search-{os.getuid()}.pid"
 DESKTOP_FIELD_CODE_RE = re.compile(r"%[fFuUdDnNickvm]")
 
@@ -1001,6 +1003,45 @@ def process_alive(pid):
     return False
 
 
+def existing_start_menu_pid():
+  try:
+    with open(START_MENU_PID_FILE, "r", encoding="utf-8") as handle:
+      return int(handle.read().strip())
+  except (OSError, ValueError):
+    return None
+
+
+def write_start_menu_pid():
+  try:
+    with open(START_MENU_PID_FILE, "w", encoding="utf-8") as handle:
+      handle.write(str(os.getpid()))
+  except OSError:
+    pass
+
+
+def remove_start_menu_pid():
+  if existing_start_menu_pid() == os.getpid():
+    try:
+      os.remove(START_MENU_PID_FILE)
+    except OSError:
+      pass
+
+
+def toggle_existing_start_menu():
+  pid = existing_start_menu_pid()
+  if pid and pid != os.getpid() and process_alive(pid):
+    try:
+      os.kill(pid, signal.SIGTERM)
+    except OSError:
+      pass
+    return True
+  return False
+
+
+def close_from_signal(_signum, _frame):
+  GLib.idle_add(Gtk.main_quit)
+
+
 def write_taskbar_search_pid():
   try:
     with open(TASKBAR_SEARCH_PID_FILE, "w", encoding="utf-8") as handle:
@@ -1039,7 +1080,11 @@ def main():
     return 1
   if "--taskbar-search" in sys.argv:
     return 0
+  if toggle_existing_start_menu():
+    return 0
 
+  signal.signal(signal.SIGTERM, close_from_signal)
+  write_start_menu_pid()
   focus_search = "--search" in sys.argv
   window = StartMenu(focus_search=focus_search)
   window.show_all()
@@ -1052,7 +1097,10 @@ def main():
   window.position_window()
   if focus_search:
     GLib.idle_add(window.focus_search)
-  Gtk.main()
+  try:
+    Gtk.main()
+  finally:
+    remove_start_menu_pid()
   return 0
 
 
