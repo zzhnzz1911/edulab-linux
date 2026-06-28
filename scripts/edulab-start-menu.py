@@ -6,6 +6,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import time
 
 import gi
 
@@ -20,6 +21,7 @@ HEIGHT = MENU_HEIGHT + TASKBAR_HEIGHT
 START_BUTTON_WIDTH = 48
 TASKBAR_SEARCH_WIDTH = 230
 START_MENU_PID_FILE = f"/tmp/edulab-start-menu-{os.getuid()}.pid"
+START_MENU_CLOSED_FILE = f"/tmp/edulab-start-menu-closed-{os.getuid()}.stamp"
 TASKBAR_SEARCH_PID_FILE = f"/tmp/edulab-taskbar-search-{os.getuid()}.pid"
 DESKTOP_FIELD_CODE_RE = re.compile(r"%[fFuUdDnNickvm]")
 
@@ -1027,6 +1029,23 @@ def remove_start_menu_pid():
       pass
 
 
+def write_start_menu_closed_stamp():
+  try:
+    with open(START_MENU_CLOSED_FILE, "w", encoding="utf-8") as handle:
+      handle.write(f"{time.monotonic():.6f}")
+  except OSError:
+    pass
+
+
+def start_menu_was_just_closed(window_seconds=0.7):
+  try:
+    with open(START_MENU_CLOSED_FILE, "r", encoding="utf-8") as handle:
+      closed_at = float(handle.read().strip())
+  except (OSError, ValueError):
+    return False
+  return 0 <= time.monotonic() - closed_at <= window_seconds
+
+
 def toggle_existing_start_menu():
   pid = existing_start_menu_pid()
   if pid and pid != os.getpid() and process_alive(pid):
@@ -1082,6 +1101,8 @@ def main():
     return 0
   if toggle_existing_start_menu():
     return 0
+  if start_menu_was_just_closed():
+    return 0
 
   signal.signal(signal.SIGTERM, close_from_signal)
   write_start_menu_pid()
@@ -1100,6 +1121,7 @@ def main():
   try:
     Gtk.main()
   finally:
+    write_start_menu_closed_stamp()
     remove_start_menu_pid()
   return 0
 
