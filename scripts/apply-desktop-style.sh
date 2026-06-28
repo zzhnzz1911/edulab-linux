@@ -132,6 +132,49 @@ gsettings_set_if_exists() {
   gsettings set "$schema" "$key" "$value" >/dev/null 2>&1 || true
 }
 
+gsettings_set_key_if_exists() {
+  local schema="$1"
+  local key="$2"
+  local value="$3"
+
+  command -v gsettings >/dev/null 2>&1 || return 0
+  gsettings list-schemas 2>/dev/null | grep -qx "$schema" || return 0
+  gsettings list-keys "$schema" 2>/dev/null | grep -qx "$key" || return 0
+  gsettings set "$schema" "$key" "$value" >/dev/null 2>&1 || true
+}
+
+desktop_dir_for_current_user() {
+  local desktop_dir=""
+
+  if command -v xdg-user-dir >/dev/null 2>&1; then
+    desktop_dir="$(xdg-user-dir DESKTOP 2>/dev/null || true)"
+  fi
+
+  if [[ -z "$desktop_dir" || "$desktop_dir" == "$HOME" ]]; then
+    desktop_dir="$HOME/Desktop"
+  fi
+
+  printf '%s\n' "$desktop_dir"
+}
+
+trust_desktop_launchers() {
+  local desktop_dir
+  local launcher
+
+  desktop_dir="$(desktop_dir_for_current_user)"
+  [[ -d "$desktop_dir" ]] || return 0
+
+  rm -f -- "$desktop_dir/Bai-tap.desktop" "$desktop_dir/Tep.desktop" "$desktop_dir/Cai-dat.desktop" 2>/dev/null || true
+
+  for launcher in "$desktop_dir"/*.desktop; do
+    [[ -e "$launcher" ]] || continue
+    chmod 0755 "$launcher" 2>/dev/null || true
+    if command -v gio >/dev/null 2>&1; then
+      gio set "$launcher" metadata::trusted true >/dev/null 2>&1 || true
+    fi
+  done
+}
+
 prepare_wallpaper() {
   mkdir -p "$USER_BG_DIR"
 
@@ -271,7 +314,7 @@ apply_xfce_taskbar() {
   id=$((id + 1))
 
   local plugin
-  for plugin in systray notification-plugin pulseaudio power-manager-plugin clock showdesktop; do
+  for plugin in xkb systray notification-plugin pulseaudio power-manager-plugin clock showdesktop; do
     if panel_plugin_available "$plugin"; then
       set_panel_plugin_type "$id" "$plugin"
       if [[ "$plugin" == "clock" ]]; then
@@ -318,12 +361,30 @@ apply_file_explorer_style() {
     "$HOME/Downloads" \
     "$HOME/Pictures" \
     "$HOME/Videos" \
-    "$HOME/Music" \
-    "$HOME/Bai-tap"; do
+    "$HOME/Music"; do
     if [[ -d "$dir" ]]; then
       printf 'file://%s\n' "$dir" >> "$bookmarks"
     fi
   done
+}
+
+apply_input_switcher_style() {
+  if command -v setxkbmap >/dev/null 2>&1; then
+    setxkbmap -layout us,vn -variant , -option grp:win_space_toggle >/dev/null 2>&1 || true
+  fi
+
+  if command -v xfconf-query >/dev/null 2>&1; then
+    xfconf_set keyboard-layout /Default/XkbDisable bool "false"
+    xfconf_set keyboard-layout /Default/XkbLayout string "us,vn"
+    xfconf_set keyboard-layout /Default/XkbVariant string ","
+    xfconf_set keyboard-layout /Default/XkbOptions/Group string "grp:win_space_toggle"
+  fi
+
+  gsettings_set_key_if_exists org.freedesktop.ibus.general preload-engines "['xkb:us::eng', 'Unikey']"
+  gsettings_set_key_if_exists org.freedesktop.ibus.general engines-order "['xkb:us::eng', 'Unikey']"
+  gsettings_set_key_if_exists org.freedesktop.ibus.general use-system-keyboard-layout "false"
+  gsettings_set_key_if_exists org.freedesktop.ibus.general.hotkey triggers "['<Super>space']"
+  gsettings_set_key_if_exists org.freedesktop.ibus.general.hotkey triggers-backward "['<Shift><Super>space']"
 }
 
 apply_xfce_style() {
@@ -342,8 +403,13 @@ apply_xfce_style() {
   xfconf_set xfwm4 /general/use_compositing bool "true"
 
   # Icon desktop lớn vừa đủ cho người dùng dễ nhìn.
+  xfconf_set xfce4-desktop /desktop-icons/style int "2"
   xfconf_set xfce4-desktop /desktop-icons/icon-size uint "48"
   xfconf_set xfce4-desktop /desktop-icons/show-tooltips bool "true"
+  xfconf_set xfce4-desktop /desktop-icons/file-icons/show-trash bool "true"
+  xfconf_set xfce4-desktop /desktop-icons/file-icons/show-home bool "false"
+  xfconf_set xfce4-desktop /desktop-icons/file-icons/show-filesystem bool "false"
+  xfconf_set xfce4-desktop /desktop-icons/file-icons/show-removable bool "false"
 
   # Phím tắt quen thuộc: Super mở menu, Super+E mở File Explorer, Super+I mở Settings.
   xfconf_set xfce4-keyboard-shortcuts "/commands/custom/Super_L" string "xfce4-popup-whiskermenu"
@@ -352,6 +418,8 @@ apply_xfce_style() {
 
   apply_xfce_taskbar
   apply_file_explorer_style
+  apply_input_switcher_style
+  trust_desktop_launchers
   apply_xfce_wallpaper "$1"
 
   # Nạp lại panel để thay đổi ổn định hơn. Nếu đang thi hoặc đang mở app, lệnh này chỉ restart panel.
@@ -371,6 +439,10 @@ apply_cinnamon_style() {
   if [[ -n "$wallpaper" && -f "$wallpaper" ]]; then
     gsettings_set_if_exists org.cinnamon.desktop.background picture-uri "'file://$wallpaper'"
   fi
+
+  gsettings_set_key_if_exists org.nemo.desktop trash-icon-visible "true"
+  gsettings_set_key_if_exists org.nemo.desktop home-icon-visible "false"
+  gsettings_set_key_if_exists org.nemo.desktop computer-icon-visible "false"
 }
 
 main() {

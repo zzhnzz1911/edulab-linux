@@ -24,7 +24,6 @@ TARGET_USER="${TARGET_USER:-${EDULAB_TARGET_USER:-}}"
 
 LMS_URL="${LMS_URL:-}"
 BROWSER_CHOICE="${BROWSER_CHOICE:-chrome}"
-EXERCISES_DIR_NAME="${EXERCISES_DIR_NAME:-Bai-tap}"
 INSTALL_ONLYOFFICE=1
 ALLOW_MICROSOFT_EDGE=0
 DRY_RUN=0
@@ -293,11 +292,12 @@ install_base_packages() {
   apt_install_available \
     ca-certificates curl git gnupg lsb-release sudo \
     xdg-utils xdg-user-dirs desktop-file-utils dbus-x11 \
+    libglib2.0-bin x11-xkb-utils \
     gtk2-engines-murrine gtk2-engines-pixbuf hicolor-icon-theme adwaita-icon-theme \
     fonts-dejavu fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji \
     fonts-liberation fonts-crosextra-carlito fonts-crosextra-caladea \
     ibus ibus-gtk ibus-gtk3 ibus-gtk4 ibus-unikey im-config language-pack-vi \
-    arc-theme papirus-icon-theme thunar thunar-volman xfce4-whiskermenu-plugin \
+    arc-theme papirus-icon-theme thunar thunar-volman xfce4-whiskermenu-plugin xfce4-xkb-plugin \
     xfce4-pulseaudio-plugin xfce4-power-manager xfce4-power-manager-plugins xfce4-notifyd \
     file-roller p7zip-full unzip
 }
@@ -401,7 +401,6 @@ install_browser() {
 
 install_helper_scripts() {
   local first_login
-  local open_exercises
   local open_lms
   local open_settings
   local open_files
@@ -411,7 +410,7 @@ install_helper_scripts() {
 # Chạy một lần khi user đăng nhập để áp theme và bộ gõ.
 set -u
 
-MARKER="$HOME/.config/edulab/desktop-style-v4.done"
+MARKER="$HOME/.config/edulab/desktop-style-v5.done"
 mkdir -p "$HOME/.config/edulab"
 if [[ -f "$MARKER" ]]; then
   exit 0
@@ -446,13 +445,6 @@ fi
 
 touch "$MARKER"
 '
-
-  open_exercises="#!/usr/bin/env bash
-# Mở thư mục bài tập của người dùng hiện tại.
-set -u
-mkdir -p \"\$HOME/$EXERCISES_DIR_NAME\"
-exec xdg-open \"\$HOME/$EXERCISES_DIR_NAME\"
-"
 
   open_lms="#!/usr/bin/env bash
 # Mở LMS đã cấu hình cho phòng máy.
@@ -500,14 +492,13 @@ exec xdg-open "${1:-about:blank}"
 '
 
   write_root_file "/usr/local/bin/edulab-first-login.sh" "$first_login"
-  write_root_file "/usr/local/bin/edulab-open-exercises" "$open_exercises"
   write_root_file "/usr/local/bin/edulab-open-lms" "$open_lms"
   write_root_file "/usr/local/bin/edulab-open-settings" "$open_settings"
   write_root_file "/usr/local/bin/edulab-open-files" "$open_files"
   write_root_file "/usr/local/bin/edulab-browser" "$browser_helper"
+  run rm -f /usr/local/bin/edulab-open-exercises
   run chmod 0755 \
     /usr/local/bin/edulab-first-login.sh \
-    /usr/local/bin/edulab-open-exercises \
     /usr/local/bin/edulab-open-lms \
     /usr/local/bin/edulab-open-settings \
     /usr/local/bin/edulab-open-files \
@@ -600,6 +591,39 @@ install_desktop_entry() {
   write_root_file "$path" "$content"
   run chmod 0755 "$path"
   run chown "$owner:$group" "$path"
+  trust_desktop_entry "$path" "$owner"
+}
+
+trust_desktop_entry() {
+  local path="$1"
+  local owner="$2"
+  local uid
+
+  [[ "$DRY_RUN" -eq 0 ]] || return 0
+  command -v gio >/dev/null 2>&1 || return 0
+  id "$owner" >/dev/null 2>&1 || return 0
+
+  uid="$(id -u "$owner")"
+  runuser -u "$owner" -- env XDG_RUNTIME_DIR="/run/user/$uid" \
+    gio set "$path" metadata::trusted true >/dev/null 2>&1 || true
+}
+
+remove_file_if_exists() {
+  local path="$1"
+
+  if [[ -e "$path" || -L "$path" ]]; then
+    run rm -f -- "$path"
+  fi
+}
+
+remove_empty_dir_if_exists() {
+  local path="$1"
+
+  if [[ -d "$path" && "$DRY_RUN" -eq 0 ]]; then
+    rmdir --ignore-fail-on-non-empty -- "$path" 2>/dev/null || true
+  elif [[ "$DRY_RUN" -eq 1 ]]; then
+    log "+ xóa thư mục nếu rỗng: $path"
+  fi
 }
 
 install_shortcuts_to_dir() {
@@ -617,6 +641,9 @@ install_shortcuts_to_dir() {
 
   run install -d -m 0755 "$target_dir"
   run chown "$owner:$group" "$target_dir"
+  remove_file_if_exists "$target_dir/Bai-tap.desktop"
+  remove_file_if_exists "$target_dir/Tep.desktop"
+  remove_file_if_exists "$target_dir/Cai-dat.desktop"
 
   install_desktop_entry "$target_dir/ONLYOFFICE.desktop" "$owner" "$group" \
     "$(desktop_entry_content "ONLYOFFICE" "Soạn thảo văn bản, bảng tính và trình chiếu" "desktopeditors" "onlyoffice-desktopeditors" "Office;")"
@@ -631,9 +658,6 @@ install_shortcuts_to_dir() {
 
   install_desktop_entry "$target_dir/Settings.desktop" "$owner" "$group" \
     "$(desktop_entry_content "Settings" "Mở cài đặt hệ thống" "edulab-open-settings" "preferences-system" "Settings;")"
-
-  install_desktop_entry "$target_dir/Bai-tap.desktop" "$owner" "$group" \
-    "$(desktop_entry_content "Bài tập" "Mở thư mục bài tập" "edulab-open-exercises" "folder-documents" "Utility;")"
 
   if [[ -n "$LMS_URL" ]]; then
     install_desktop_entry "$target_dir/LMS.desktop" "$owner" "$group" \
@@ -650,9 +674,8 @@ configure_target_desktop() {
   [[ -n "$home" ]] || die "Không tìm thấy home của $TARGET_USER."
   group="$(id -gn "$TARGET_USER")"
 
-  log "Tạo thư mục bài tập, shortcut và cấu hình desktop cho $TARGET_USER."
-  run install -d -m 0755 "$home/$EXERCISES_DIR_NAME"
-  run chown "$TARGET_USER:$group" "$home/$EXERCISES_DIR_NAME"
+  log "Tạo shortcut và cấu hình desktop cho $TARGET_USER."
+  remove_empty_dir_if_exists "$home/Bai-tap"
 
   write_gtk_settings "$home" "$TARGET_USER" "$group"
 

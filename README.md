@@ -4,7 +4,7 @@ Bộ cài nhanh cho máy Linux desktop dùng trong môi trường học tập IC
 
 Khuyến nghị dùng **Linux Mint Xfce 64-bit** hoặc **Xubuntu 64-bit**. Máy cần có Internet khi cài.
 
-Giao diện mặc định dùng một kiểu duy nhất: **EduLab Windows 10-like Desktop**. Bố cục ưu tiên giống Windows 10 nhất có thể trên Linux Mint/Xubuntu Xfce: taskbar dưới màu đen, nút Start bên trái, File Explorer và trình duyệt được ghim trên taskbar, app icon-only, tray/clock bên phải, shortcut File Explorer/Settings/Bài tập/LMS trên Desktop.
+Giao diện mặc định dùng một kiểu duy nhất: **EduLab Windows 10-like Desktop**. Bố cục ưu tiên giống Windows 10 nhất có thể trên Linux Mint/Xubuntu Xfce: taskbar dưới màu đen, nút Start bên trái, File Explorer và trình duyệt được ghim trên taskbar, app icon-only, tray/clock bên phải, icon Trash trên Desktop, shortcut File Explorer/Settings và LMS nếu có cấu hình.
 
 Bộ cài dùng theme GTK/Xfwm và icon Windows 10 từ B00merang, kèm wallpaper `assets/windows-10-blue-gradient.jpg` lấy từ file bạn đặt trong `downloads/`. Khi triển khai thương mại hoặc bàn giao cho khách hàng, hãy kiểm tra license/nhận diện thương hiệu theo chính sách của bạn.
 
@@ -49,7 +49,7 @@ cd ~/edulab-linux
 bash scripts/edulab-oneclick-uninstaller.sh
 ```
 
-Trình gỡ chỉ gỡ cấu hình/shortcut EduLab, không xóa `Documents`, `Downloads`, Desktop hoặc thư mục `Bai-tap`.
+Trình gỡ chỉ gỡ cấu hình/shortcut EduLab, không xóa `Documents`, `Downloads` hoặc Desktop.
 
 ## Ghi chú
 

@@ -35,7 +35,7 @@ confirm_uninstall() {
   local answer
 
   echo "Script sẽ gỡ shortcut, autostart, helper và cấu hình hệ thống của EduLab."
-  echo "Script KHÔNG xóa Documents, Downloads, Desktop hoặc thư mục Bai-tap."
+  echo "Script KHÔNG xóa Documents, Downloads hoặc Desktop."
   echo "Chrome/ONLYOFFICE và các phần mềm đã cài sẽ được giữ lại mặc định."
   echo
   if ! read -r -p "Bạn có chắc muốn gỡ cấu hình EduLab không? [y/N]: " answer; then

@@ -30,22 +30,24 @@ Checklist này dùng cho VM master, máy clone thử và lô máy thật trướ
 - [ ] Desktop có shortcut Trình duyệt.
 - [ ] Desktop có shortcut File Explorer.
 - [ ] Desktop có shortcut Settings.
-- [ ] Desktop có shortcut Bài tập.
+- [ ] Desktop không còn shortcut Bài tập.
+- [ ] Desktop có icon Trash/Thùng rác.
 - [ ] Nếu có cấu hình `--lms-url`, Desktop có shortcut LMS.
 - [ ] Shortcut ONLYOFFICE mở được ứng dụng.
 - [ ] Shortcut Trình duyệt mở đúng trình duyệt đã chọn.
 - [ ] Shortcut File Explorer mở thư mục cá nhân trong file manager.
 - [ ] Shortcut Settings mở trung tâm cài đặt hệ thống.
-- [ ] Shortcut Bài tập mở đúng thư mục `~/Bai-tap`.
 - [ ] Nếu có cấu hình `--lms-url`, shortcut LMS mở đúng URL của trường.
 - [ ] Taskbar nằm dưới, nút Start bên trái, File Explorer/trình duyệt được ghim, app icon-only, tray/clock bên phải.
+- [ ] Desktop shortcut không hiện cảnh báo "Untrusted application launcher" khi mở.
 - [ ] Theme GTK/Xfwm và icon theme đang là `Windows 10`.
 - [ ] Wallpaper hiển thị đúng hình gradient xanh Windows 10-like.
 
 ## 4. Kiểm thử tiếng Việt
 
 - [ ] `ibus-unikey` đã cài.
-- [ ] Có thể chọn bộ gõ Vietnamese/Unikey trong Input Method.
+- [ ] Có thể đổi US/Vietnamese bằng `Super+Space`.
+- [ ] Panel có chỉ báo keyboard layout/input gần khu vực tray.
 - [ ] Gõ được tiếng Việt trong trình duyệt.
 - [ ] Gõ được tiếng Việt trong ONLYOFFICE Writer.
 - [ ] Gõ được tiếng Việt trong tên file và thư mục.
@@ -57,7 +59,7 @@ Checklist này dùng cho VM master, máy clone thử và lô máy thật trướ
 - [ ] Tạo và lưu file `.docx`.
 - [ ] Tạo và lưu file `.xlsx`.
 - [ ] Tạo và lưu file `.pptx`.
-- [ ] Mở lại file đã lưu trong `~/Bai-tap`.
+- [ ] Mở lại file đã lưu trong thư mục tài liệu người dùng.
 - [ ] Gõ tiếng Việt, định dạng font, bảng biểu, hình ảnh hoạt động.
 - [ ] Export PDF hoạt động nếu bài học yêu cầu.
 - [ ] Không hiển thị lỗi font nghiêm trọng khi mở tài liệu mẫu.
@@ -90,7 +92,7 @@ sudo reboot
 - [ ] `/etc/machine-id` khác với máy master.
 - [ ] Cache apt đã được dọn.
 - [ ] Lịch sử shell tài khoản hiện tại/admin đã được dọn nếu quy trình clone yêu cầu.
-- [ ] File trong `~/Bai-tap`, Desktop, Documents, Downloads không bị xóa.
+- [ ] File trong Desktop, Documents, Downloads không bị xóa.
 - [ ] Nếu dùng `--reset-ssh-host-keys`, SSH host keys được tạo lại.
 - [ ] Log tồn tại tại `/var/log/edulab-post-clone.log`.
 

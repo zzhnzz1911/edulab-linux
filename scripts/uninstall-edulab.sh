@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Gỡ cấu hình EduLab Linux một cách an toàn.
-# Script không xóa dữ liệu cá nhân, không xóa Desktop và không xóa thư mục Bai-tap.
+# Script không xóa dữ liệu cá nhân, không xóa Desktop, Documents hoặc Downloads.
 
 set -Eeuo pipefail
 
@@ -9,7 +9,6 @@ LOG_FILE="/var/log/edulab-uninstall.log"
 STATE_FILE="/var/lib/edulab/install-state.env"
 
 TARGET_USER="${SUDO_USER:-${USER:-}}"
-EXERCISES_DIR_NAME="Bai-tap"
 REMOVE_APPS=0
 YES=0
 DRY_RUN=0
@@ -29,7 +28,7 @@ Tùy chọn:
   -h, --help              Hiển thị trợ giúp
 
 Mặc định script chỉ gỡ helper, shortcut, autostart, wallpaper và policy EduLab.
-Script không xóa Documents, Downloads, Desktop hoặc thư mục Bai-tap.
+Script không xóa Documents, Downloads hoặc Desktop.
 USAGE
 }
 
@@ -114,7 +113,7 @@ confirm_action() {
   [[ "$YES" -eq 0 ]] || return 0
 
   echo "Sắp gỡ cấu hình $PROJECT_NAME cho user: $TARGET_USER"
-  echo "Không xóa Documents, Downloads, Desktop hoặc thư mục $EXERCISES_DIR_NAME."
+  echo "Không xóa Documents, Downloads hoặc Desktop."
   if [[ "$REMOVE_APPS" -eq 1 ]]; then
     echo "Có bật --remove-apps: script sẽ cố gỡ thêm ứng dụng theo trạng thái EduLab."
   fi
@@ -185,6 +184,7 @@ remove_user_shortcuts() {
   remove_file "$home/.config/autostart/edulab-first-login.desktop"
   remove_file "$home/.config/edulab/first-login.done"
   remove_file "$home/.config/edulab/desktop-style-v4.done"
+  remove_file "$home/.config/edulab/desktop-style-v5.done"
   remove_file "$home/.local/share/backgrounds/edulab/windows-10-blue-gradient.jpg"
   remove_file "$home/.config/xfce4/panel/launcher-101/file-explorer.desktop"
   remove_file "$home/.config/xfce4/panel/launcher-102/file-explorer.desktop"
