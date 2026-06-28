@@ -21,20 +21,27 @@ Checklist này dùng cho VM master, máy clone thử và lô máy thật trướ
 - [ ] Repository ONLYOFFICE được thêm bằng `signed-by=/usr/share/keyrings/onlyoffice.gpg`.
 - [ ] Repository Chrome được thêm bằng `signed-by=/usr/share/keyrings/google-linux.gpg` nếu chọn Chrome.
 - [ ] Không cài `ttf-mscorefonts-installer`.
-- [ ] Không có shortcut, wallpaper hoặc icon tự tạo mang nhận diện Microsoft.
+- [ ] Theme/icon Windows 10 tải được từ GitHub hoặc có cảnh báo fallback rõ ràng trong log.
+- [ ] Wallpaper `windows-10-blue-gradient.jpg` được cài vào `/usr/share/backgrounds/edulab/`.
 
 ## 3. Kiểm thử Desktop học sinh
 
 - [ ] Đăng nhập tài khoản học sinh lần đầu không hiện lỗi.
 - [ ] Desktop có shortcut ONLYOFFICE.
 - [ ] Desktop có shortcut Trình duyệt.
+- [ ] Desktop có shortcut File Explorer.
+- [ ] Desktop có shortcut Settings.
 - [ ] Desktop có shortcut Bài tập.
 - [ ] Nếu có cấu hình `--lms-url`, Desktop có shortcut LMS.
 - [ ] Shortcut ONLYOFFICE mở được ứng dụng.
 - [ ] Shortcut Trình duyệt mở đúng trình duyệt đã chọn.
+- [ ] Shortcut File Explorer mở thư mục cá nhân trong file manager.
+- [ ] Shortcut Settings mở trung tâm cài đặt hệ thống.
 - [ ] Shortcut Bài tập mở đúng thư mục `~/Bai-tap`.
 - [ ] Nếu có cấu hình `--lms-url`, shortcut LMS mở đúng URL của trường.
-- [ ] Theme/icon hiển thị rõ, không mô phỏng Windows hoặc Office.
+- [ ] Taskbar nằm dưới, nút Start bên trái, File Explorer/trình duyệt được ghim, app icon-only, tray/clock bên phải.
+- [ ] Theme GTK/Xfwm và icon theme đang là `Windows 10`.
+- [ ] Wallpaper hiển thị đúng hình gradient xanh Windows 10-like.
 
 ## 4. Kiểm thử tiếng Việt
 

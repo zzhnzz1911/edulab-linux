@@ -10,6 +10,16 @@ LOG_FILE="/var/log/edulab-install.log"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 PROJECT_DIR="$(cd -- "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
 
+GTK_THEME_NAME="Windows 10"
+ICON_THEME_NAME="Windows 10"
+FONT_NAME="Noto Sans 10"
+WIN10_GTK_THEME_REPO="https://github.com/B00merang-Project/Windows-10.git"
+WIN10_ICON_THEME_REPO="https://github.com/B00merang-Artwork/Windows-10.git"
+WIN10_THEME_BRANCH="${WIN10_THEME_BRANCH:-master}"
+WIN10_WALLPAPER_NAME="windows-10-blue-gradient.jpg"
+WIN10_WALLPAPER_DOWNLOAD_NAME="Wallpaper Alchemy - Hình Nền Gradient Xanh Mặc Định Windows 10 4K.jpg"
+WIN10_SYSTEM_WALLPAPER="/usr/share/backgrounds/edulab/$WIN10_WALLPAPER_NAME"
+
 STUDENT_USER="${STUDENT_USER:-student}"
 STUDENT_FULLNAME="${STUDENT_FULLNAME:-Hoc sinh}"
 STUDENT_PASSWORD="${STUDENT_PASSWORD:-Student@123}"
@@ -242,28 +252,78 @@ install_gpg_key_from_url() {
   rm -f "$tmp_asc" "$tmp_gpg"
 }
 
+install_git_asset_tree() {
+  local label="$1"
+  local repo="$2"
+  local branch="$3"
+  local target="$4"
+  local tmp_dir
+
+  log "Cài $label từ $repo."
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    log "DRY-RUN: sẽ clone nhánh $branch vào $target"
+    return
+  fi
+
+  if ! command -v git >/dev/null 2>&1; then
+    log "CẢNH BÁO: Không tìm thấy git, bỏ qua $label."
+    return
+  fi
+
+  tmp_dir="$(mktemp -d)"
+  if git clone --depth 1 --branch "$branch" "$repo" "$tmp_dir"; then
+    rm -rf -- "$target"
+    install -d -m 0755 "$target"
+    cp -a "$tmp_dir/." "$target/"
+    rm -rf -- "$target/.git"
+    find "$target" -type d -exec chmod 0755 {} +
+    find "$target" -type f -exec chmod 0644 {} +
+  else
+    log "CẢNH BÁO: Không tải được $label. Sẽ dùng theme/icon fallback nếu có."
+  fi
+
+  rm -rf -- "$tmp_dir"
+}
+
 install_base_packages() {
   log "Cài gói nền, font, bộ gõ và theme mở."
   apt_install_available \
-    ca-certificates curl gnupg lsb-release sudo \
+    ca-certificates curl git gnupg lsb-release sudo \
     xdg-utils xdg-user-dirs desktop-file-utils dbus-x11 \
+    gtk2-engines-murrine gtk2-engines-pixbuf hicolor-icon-theme adwaita-icon-theme \
     fonts-dejavu fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji \
     fonts-liberation fonts-crosextra-carlito fonts-crosextra-caladea \
     ibus ibus-gtk ibus-gtk3 ibus-gtk4 ibus-unikey im-config language-pack-vi \
-    arc-theme papirus-icon-theme xfce4-whiskermenu-plugin \
+    arc-theme papirus-icon-theme thunar thunar-volman xfce4-whiskermenu-plugin \
     xfce4-pulseaudio-plugin xfce4-power-manager xfce4-power-manager-plugins xfce4-notifyd \
     file-roller p7zip-full unzip
 }
 
+install_windows10_theme_assets() {
+  install_git_asset_tree "GTK/Xfwm theme Windows 10" \
+    "$WIN10_GTK_THEME_REPO" "$WIN10_THEME_BRANCH" "/usr/share/themes/$GTK_THEME_NAME"
+
+  install_git_asset_tree "icon theme Windows 10" \
+    "$WIN10_ICON_THEME_REPO" "$WIN10_THEME_BRANCH" "/usr/share/icons/$ICON_THEME_NAME"
+
+  if [[ "$DRY_RUN" -eq 0 && -d "/usr/share/icons/$ICON_THEME_NAME" ]]; then
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+      gtk-update-icon-cache -f -q "/usr/share/icons/$ICON_THEME_NAME" || true
+    fi
+  fi
+}
+
 install_wallpaper_assets() {
-  log "Cài wallpaper EduLab trung tính, không dùng tài sản thương hiệu Microsoft."
+  log "Cài wallpaper Windows 10-like từ asset của dự án."
   run install -d -m 0755 /usr/share/backgrounds/edulab
 
-  if [[ -f "$PROJECT_DIR/assets/edulab-familiar-wallpaper.svg" ]]; then
-    run install -m 0644 "$PROJECT_DIR/assets/edulab-familiar-wallpaper.svg" \
-      /usr/share/backgrounds/edulab/edulab-familiar-wallpaper.svg
+  if [[ -f "$PROJECT_DIR/assets/$WIN10_WALLPAPER_NAME" ]]; then
+    run install -m 0644 "$PROJECT_DIR/assets/$WIN10_WALLPAPER_NAME" "$WIN10_SYSTEM_WALLPAPER"
+  elif [[ -f "$PROJECT_DIR/downloads/$WIN10_WALLPAPER_DOWNLOAD_NAME" ]]; then
+    run install -m 0644 "$PROJECT_DIR/downloads/$WIN10_WALLPAPER_DOWNLOAD_NAME" "$WIN10_SYSTEM_WALLPAPER"
   else
-    log "CẢNH BÁO: Không tìm thấy assets/edulab-familiar-wallpaper.svg, bỏ qua wallpaper."
+    log "CẢNH BÁO: Không tìm thấy wallpaper Windows 10-like, bỏ qua wallpaper."
   fi
 }
 
@@ -367,13 +427,15 @@ install_helper_scripts() {
   local first_login
   local open_exercises
   local open_lms
+  local open_settings
+  local open_files
   local browser_helper
 
   first_login='#!/usr/bin/env bash
 # Chạy một lần khi học sinh đăng nhập để áp theme và bộ gõ.
 set -u
 
-MARKER="$HOME/.config/edulab/desktop-style-v2.done"
+MARKER="$HOME/.config/edulab/desktop-style-v4.done"
 mkdir -p "$HOME/.config/edulab"
 if [[ -f "$MARKER" ]]; then
   exit 0
@@ -388,17 +450,17 @@ if command -v ibus-daemon >/dev/null 2>&1; then
 fi
 
 if command -v gsettings >/dev/null 2>&1; then
-  gsettings set org.gnome.desktop.interface gtk-theme "Arc" >/dev/null 2>&1 || true
-  gsettings set org.gnome.desktop.interface icon-theme "Papirus" >/dev/null 2>&1 || true
+  gsettings set org.gnome.desktop.interface gtk-theme "Windows 10" >/dev/null 2>&1 || true
+  gsettings set org.gnome.desktop.interface icon-theme "Windows 10" >/dev/null 2>&1 || true
   gsettings set org.gnome.desktop.interface font-name "Noto Sans 10" >/dev/null 2>&1 || true
-  gsettings set org.cinnamon.desktop.interface gtk-theme "Arc" >/dev/null 2>&1 || true
-  gsettings set org.cinnamon.desktop.interface icon-theme "Papirus" >/dev/null 2>&1 || true
+  gsettings set org.cinnamon.desktop.interface gtk-theme "Windows 10" >/dev/null 2>&1 || true
+  gsettings set org.cinnamon.desktop.interface icon-theme "Windows 10" >/dev/null 2>&1 || true
   gsettings set org.cinnamon.desktop.interface font-name "Noto Sans 10" >/dev/null 2>&1 || true
 fi
 
 if command -v xfconf-query >/dev/null 2>&1; then
-  xfconf-query -c xsettings -p /Net/ThemeName -s "Arc" >/dev/null 2>&1 || true
-  xfconf-query -c xsettings -p /Net/IconThemeName -s "Papirus" >/dev/null 2>&1 || true
+  xfconf-query -c xsettings -p /Net/ThemeName -s "Windows 10" >/dev/null 2>&1 || true
+  xfconf-query -c xsettings -p /Net/IconThemeName -s "Windows 10" >/dev/null 2>&1 || true
   xfconf-query -c xsettings -p /Gtk/FontName -s "Noto Sans 10" >/dev/null 2>&1 || true
 fi
 
@@ -422,6 +484,32 @@ set -u
 exec edulab-browser \"$LMS_URL\"
 "
 
+  open_settings='#!/usr/bin/env bash
+# Mở trung tâm cài đặt hệ thống bằng công cụ có sẵn của desktop.
+set -u
+
+for cmd in xfce4-settings-manager cinnamon-settings gnome-control-center mate-control-center; do
+  if command -v "$cmd" >/dev/null 2>&1; then
+    exec "$cmd"
+  fi
+done
+
+exec xdg-open "$HOME/.config"
+'
+
+  open_files='#!/usr/bin/env bash
+# Mở thư mục cá nhân theo thói quen dùng File Explorer.
+set -u
+
+for cmd in thunar nemo caja nautilus dolphin; do
+  if command -v "$cmd" >/dev/null 2>&1; then
+    exec "$cmd" "$HOME"
+  fi
+done
+
+exec xdg-open "$HOME"
+'
+
   browser_helper='#!/usr/bin/env bash
 # Mở trình duyệt đã cài. Không gắn cứng vào một thương hiệu trong shortcut.
 set -u
@@ -438,8 +526,16 @@ exec xdg-open "${1:-about:blank}"
   write_root_file "/usr/local/bin/edulab-first-login.sh" "$first_login"
   write_root_file "/usr/local/bin/edulab-open-exercises" "$open_exercises"
   write_root_file "/usr/local/bin/edulab-open-lms" "$open_lms"
+  write_root_file "/usr/local/bin/edulab-open-settings" "$open_settings"
+  write_root_file "/usr/local/bin/edulab-open-files" "$open_files"
   write_root_file "/usr/local/bin/edulab-browser" "$browser_helper"
-  run chmod 0755 /usr/local/bin/edulab-first-login.sh /usr/local/bin/edulab-open-exercises /usr/local/bin/edulab-open-lms /usr/local/bin/edulab-browser
+  run chmod 0755 \
+    /usr/local/bin/edulab-first-login.sh \
+    /usr/local/bin/edulab-open-exercises \
+    /usr/local/bin/edulab-open-lms \
+    /usr/local/bin/edulab-open-settings \
+    /usr/local/bin/edulab-open-files \
+    /usr/local/bin/edulab-browser
 
   if [[ -f "$SCRIPT_DIR/apply-desktop-style.sh" ]]; then
     run install -m 0755 "$SCRIPT_DIR/apply-desktop-style.sh" /usr/local/bin/edulab-apply-desktop-style
@@ -469,15 +565,15 @@ write_gtk_settings() {
   local content
 
   content='[Settings]
-gtk-theme-name=Arc
-gtk-icon-theme-name=Papirus
+gtk-theme-name=Windows 10
+gtk-icon-theme-name=Windows 10
 gtk-font-name=Noto Sans 10
 gtk-application-prefer-dark-theme=false'
 
   run install -d -m 0755 "$base_dir/.config/gtk-3.0"
   write_root_file "$settings" "$content"
-  write_root_file "$gtkrc" 'gtk-theme-name="Arc"
-gtk-icon-theme-name="Papirus"
+  write_root_file "$gtkrc" 'gtk-theme-name="Windows 10"
+gtk-icon-theme-name="Windows 10"
 gtk-font-name="Noto Sans 10"'
   run chown -R "$owner:$group" "$base_dir/.config" "$gtkrc"
 }
@@ -553,6 +649,12 @@ install_shortcuts_to_dir() {
     install_desktop_entry "$target_dir/Trinh-duyet.desktop" "$owner" "$group" \
       "$(desktop_entry_content "Trình duyệt" "Mở trình duyệt web" "$browser_exec" "$browser_icon" "Network;WebBrowser;")"
   fi
+
+  install_desktop_entry "$target_dir/File-Explorer.desktop" "$owner" "$group" \
+    "$(desktop_entry_content "File Explorer" "Mở thư mục cá nhân" "edulab-open-files" "system-file-manager" "Utility;FileManager;")"
+
+  install_desktop_entry "$target_dir/Settings.desktop" "$owner" "$group" \
+    "$(desktop_entry_content "Settings" "Mở cài đặt hệ thống" "edulab-open-settings" "preferences-system" "Settings;")"
 
   install_desktop_entry "$target_dir/Bai-tap.desktop" "$owner" "$group" \
     "$(desktop_entry_content "Bài tập" "Mở thư mục bài tập" "edulab-open-exercises" "folder-documents" "Utility;")"
@@ -652,6 +754,7 @@ main() {
   log "Bắt đầu cài đặt $PROJECT_NAME."
   check_platform
   install_base_packages
+  install_windows10_theme_assets
   install_wallpaper_assets
   install_browser
   install_onlyoffice

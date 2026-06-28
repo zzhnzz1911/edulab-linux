@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
-# Áp giao diện "quen Windows" nhưng không dùng tài sản thương hiệu Microsoft.
+# Áp giao diện EduLab Windows 10-like Desktop cho tài khoản hiện tại.
 # Chạy script này trong chính tài khoản cần tùy biến, ví dụ tài khoản student.
 
 set -u
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 PROJECT_DIR="$(cd -- "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
+GTK_THEME_NAME="Windows 10"
+ICON_THEME_NAME="Windows 10"
+FONT_NAME="Noto Sans 10"
 USER_BG_DIR="$HOME/.local/share/backgrounds/edulab"
-USER_WALLPAPER="$USER_BG_DIR/edulab-familiar-wallpaper.svg"
-SYSTEM_WALLPAPER="/usr/share/backgrounds/edulab/edulab-familiar-wallpaper.svg"
+WALLPAPER_NAME="windows-10-blue-gradient.jpg"
+WALLPAPER_DOWNLOAD_NAME="Wallpaper Alchemy - Hình Nền Gradient Xanh Mặc Định Windows 10 4K.jpg"
+USER_WALLPAPER="$USER_BG_DIR/$WALLPAPER_NAME"
+SYSTEM_WALLPAPER="/usr/share/backgrounds/edulab/$WALLPAPER_NAME"
+PROJECT_WALLPAPER="$PROJECT_DIR/assets/$WALLPAPER_NAME"
+DOWNLOAD_WALLPAPER="$PROJECT_DIR/downloads/$WALLPAPER_DOWNLOAD_NAME"
 
 log() {
   printf '[edulab-style] %s\n' "$*"
@@ -46,6 +53,23 @@ xfconf_int_array() {
   xfconf-query "${args[@]}" >/dev/null 2>&1 || true
 }
 
+xfconf_string_array() {
+  local channel="$1"
+  local property="$2"
+  shift 2
+
+  command -v xfconf-query >/dev/null 2>&1 || return 0
+  xfconf-query -c "$channel" -p "$property" -r >/dev/null 2>&1 || true
+
+  local args=(-c "$channel" -p "$property" -n -a)
+  local value
+  for value in "$@"; do
+    args+=(-t string -s "$value")
+  done
+
+  xfconf-query "${args[@]}" >/dev/null 2>&1 || true
+}
+
 panel_plugin_available() {
   local plugin="$1"
   [[ -f "/usr/share/xfce4/panel/plugins/$plugin.desktop" ]]
@@ -56,6 +80,35 @@ set_panel_plugin_type() {
   local plugin_type="$2"
 
   xfconf_set xfce4-panel "/plugins/plugin-$id" string "$plugin_type"
+}
+
+create_panel_launcher() {
+  local id="$1"
+  local filename="$2"
+  local name="$3"
+  local exec_cmd="$4"
+  local icon="$5"
+  local category="${6:-Utility;}"
+  local launcher_dir="$HOME/.config/xfce4/panel/launcher-$id"
+
+  panel_plugin_available launcher || return 1
+  mkdir -p "$launcher_dir"
+
+  cat > "$launcher_dir/$filename" <<ENTRY
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=$name
+Exec=$exec_cmd
+Icon=$icon
+Terminal=false
+StartupNotify=true
+Categories=$category
+ENTRY
+
+  set_panel_plugin_type "$id" launcher
+  xfconf_string_array xfce4-panel "/plugins/plugin-$id/items" "$filename"
+  xfconf_set xfce4-panel "/plugins/plugin-$id/show-label" bool "false"
 }
 
 backup_xfce_panel() {
@@ -84,8 +137,10 @@ prepare_wallpaper() {
 
   if [[ -f "$SYSTEM_WALLPAPER" ]]; then
     cp "$SYSTEM_WALLPAPER" "$USER_WALLPAPER" 2>/dev/null || true
-  elif [[ -f "$PROJECT_DIR/assets/edulab-familiar-wallpaper.svg" ]]; then
-    cp "$PROJECT_DIR/assets/edulab-familiar-wallpaper.svg" "$USER_WALLPAPER" 2>/dev/null || true
+  elif [[ -f "$PROJECT_WALLPAPER" ]]; then
+    cp "$PROJECT_WALLPAPER" "$USER_WALLPAPER" 2>/dev/null || true
+  elif [[ -f "$DOWNLOAD_WALLPAPER" ]]; then
+    cp "$DOWNLOAD_WALLPAPER" "$USER_WALLPAPER" 2>/dev/null || true
   fi
 
   [[ -f "$USER_WALLPAPER" ]] && printf '%s\n' "$USER_WALLPAPER"
@@ -96,43 +151,48 @@ apply_common_gtk_style() {
 
   cat > "$HOME/.config/gtk-3.0/settings.ini" <<'EOF'
 [Settings]
-gtk-theme-name=Arc
-gtk-icon-theme-name=Papirus
+gtk-theme-name=Windows 10
+gtk-icon-theme-name=Windows 10
 gtk-font-name=Noto Sans 10
 gtk-application-prefer-dark-theme=false
 EOF
 
   cat > "$HOME/.gtkrc-2.0" <<'EOF'
-gtk-theme-name="Arc"
-gtk-icon-theme-name="Papirus"
+gtk-theme-name="Windows 10"
+gtk-icon-theme-name="Windows 10"
 gtk-font-name="Noto Sans 10"
 EOF
 
-  # Taskbar tối, phẳng và dễ nhìn; dùng CSS GTK, không dùng asset Microsoft.
+  # Taskbar tối, phẳng và dùng accent xanh kiểu Windows 10.
   cat > "$HOME/.config/gtk-3.0/gtk.css" <<'EOF'
 .xfce4-panel {
-  background-color: #20242a;
+  background-color: #101010;
   color: #f8fafc;
-  border-top: 1px solid rgba(255, 255, 255, 0.10);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .xfce4-panel button,
 .xfce4-panel .flat,
 .xfce4-panel .toggle {
-  border-radius: 2px;
-  margin: 2px 1px;
-  padding: 2px 8px;
+  border-radius: 0;
+  margin: 0;
+  padding: 2px 11px;
   color: #f8fafc;
 }
 
 .xfce4-panel button:hover {
-  background-color: rgba(95, 179, 165, 0.28);
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.xfce4-panel button:checked,
+.xfce4-panel button:active {
+  background-color: rgba(0, 120, 215, 0.34);
 }
 
 #whiskermenu-button {
-  font-weight: 600;
-  padding-left: 10px;
-  padding-right: 12px;
+  min-width: 48px;
+  padding-left: 14px;
+  padding-right: 14px;
 }
 EOF
 }
@@ -174,15 +234,31 @@ apply_xfce_taskbar() {
   if panel_plugin_available whiskermenu; then
     set_panel_plugin_type "$id" whiskermenu
     xfconf_set xfce4-panel "/plugins/plugin-$id/button-icon" string "start-here"
-    xfconf_set xfce4-panel "/plugins/plugin-$id/button-title" string "EduLab"
-    xfconf_set xfce4-panel "/plugins/plugin-$id/show-button-title" bool "true"
+    xfconf_set xfce4-panel "/plugins/plugin-$id/button-title" string ""
+    xfconf_set xfce4-panel "/plugins/plugin-$id/show-button-title" bool "false"
+    xfconf_set xfce4-panel "/plugins/plugin-$id/menu-width" uint "520"
+    xfconf_set xfce4-panel "/plugins/plugin-$id/menu-height" uint "640"
+    xfconf_set xfce4-panel "/plugins/plugin-$id/show-command-settings" bool "true"
+    xfconf_set xfce4-panel "/plugins/plugin-$id/show-command-lockscreen" bool "true"
+    xfconf_set xfce4-panel "/plugins/plugin-$id/show-command-switchuser" bool "false"
+    ids+=("$id")
+    id=$((id + 1))
+  fi
+
+  if create_panel_launcher "$id" "file-explorer.desktop" "File Explorer" "edulab-open-files" "system-file-manager" "FileManager;"; then
+    ids+=("$id")
+    id=$((id + 1))
+  fi
+
+  if create_panel_launcher "$id" "browser.desktop" "Browser" "edulab-browser" "web-browser" "Network;WebBrowser;"; then
     ids+=("$id")
     id=$((id + 1))
   fi
 
   set_panel_plugin_type "$id" tasklist
-  xfconf_set xfce4-panel "/plugins/plugin-$id/show-labels" bool "true"
-  xfconf_set xfce4-panel "/plugins/plugin-$id/flat-buttons" bool "false"
+  # Taskbar icon-only giống thanh taskbar Windows 10.
+  xfconf_set xfce4-panel "/plugins/plugin-$id/show-labels" bool "false"
+  xfconf_set xfce4-panel "/plugins/plugin-$id/flat-buttons" bool "true"
   xfconf_set xfce4-panel "/plugins/plugin-$id/show-handle" bool "false"
   xfconf_set xfce4-panel "/plugins/plugin-$id/grouping" uint "1"
   ids+=("$id")
@@ -212,36 +288,70 @@ apply_xfce_taskbar() {
 
   xfconf_set xfce4-panel /panels/panel-1/position string "p=12;x=0;y=0"
   xfconf_set xfce4-panel /panels/panel-1/length uint "100"
-  xfconf_set xfce4-panel /panels/panel-1/size uint "46"
+  xfconf_set xfce4-panel /panels/panel-1/size uint "40"
   xfconf_set xfce4-panel /panels/panel-1/nrows uint "1"
   xfconf_set xfce4-panel /panels/panel-1/mode uint "0"
   xfconf_set xfce4-panel /panels/panel-1/autohide-behavior uint "0"
   xfconf_set xfce4-panel /panels/panel-1/position-locked bool "true"
-  xfconf_set xfce4-panel /panels/panel-1/icon-size uint "26"
+  xfconf_set xfce4-panel /panels/panel-1/icon-size uint "24"
   xfconf_set xfce4-panel /panels/panel-1/background-style uint "1"
   xfconf_set xfce4-panel /panels/panel-1/dark-mode bool "true"
+}
+
+apply_file_explorer_style() {
+  local bookmarks="$HOME/.config/gtk-3.0/bookmarks"
+  local dir
+
+  mkdir -p "$HOME/.config/gtk-3.0"
+
+  if command -v xfconf-query >/dev/null 2>&1; then
+    xfconf_set thunar /last-view string "ThunarDetailsView"
+    xfconf_set thunar /misc-single-click bool "false"
+    xfconf_set thunar /last-show-hidden bool "false"
+    xfconf_set thunar /misc-thumbnail-mode string "THUNAR_THUMBNAIL_MODE_ONLY_LOCAL"
+  fi
+
+  : > "$bookmarks"
+  for dir in \
+    "$HOME/Desktop" \
+    "$HOME/Documents" \
+    "$HOME/Downloads" \
+    "$HOME/Pictures" \
+    "$HOME/Videos" \
+    "$HOME/Music" \
+    "$HOME/Bai-tap"; do
+    if [[ -d "$dir" ]]; then
+      printf 'file://%s\n' "$dir" >> "$bookmarks"
+    fi
+  done
 }
 
 apply_xfce_style() {
   command -v xfconf-query >/dev/null 2>&1 || return 0
 
-  # Theme, icon, font: dùng gói mở trong repository, không dùng asset Microsoft.
-  xfconf_set xsettings /Net/ThemeName string "Arc"
-  xfconf_set xsettings /Net/IconThemeName string "Papirus"
-  xfconf_set xsettings /Gtk/FontName string "Noto Sans 10"
+  xfconf_set xsettings /Net/ThemeName string "$GTK_THEME_NAME"
+  xfconf_set xsettings /Net/IconThemeName string "$ICON_THEME_NAME"
+  xfconf_set xsettings /Gtk/FontName string "$FONT_NAME"
 
-  # Window buttons bên phải theo thói quen desktop phổ biến: minimize, maximize, close.
-  xfconf_set xfwm4 /general/theme string "Arc"
+  # Window buttons bên phải theo thói quen Windows: minimize, maximize, close.
+  xfconf_set xfwm4 /general/theme string "$GTK_THEME_NAME"
   xfconf_set xfwm4 /general/button_layout string "|HMC"
-  xfconf_set xfwm4 /general/title_alignment string "center"
+  xfconf_set xfwm4 /general/title_alignment string "left"
   xfconf_set xfwm4 /general/easy_click string "Alt"
   xfconf_set xfwm4 /general/workspace_count int "1"
+  xfconf_set xfwm4 /general/use_compositing bool "true"
 
   # Icon desktop lớn vừa đủ cho học sinh dễ nhìn.
   xfconf_set xfce4-desktop /desktop-icons/icon-size uint "48"
   xfconf_set xfce4-desktop /desktop-icons/show-tooltips bool "true"
 
+  # Phím tắt quen thuộc: Super mở menu, Super+E mở File Explorer, Super+I mở Settings.
+  xfconf_set xfce4-keyboard-shortcuts "/commands/custom/Super_L" string "xfce4-popup-whiskermenu"
+  xfconf_set xfce4-keyboard-shortcuts "/commands/custom/<Super>e" string "edulab-open-files"
+  xfconf_set xfce4-keyboard-shortcuts "/commands/custom/<Super>i" string "edulab-open-settings"
+
   apply_xfce_taskbar
+  apply_file_explorer_style
   apply_xfce_wallpaper "$1"
 
   # Nạp lại panel để thay đổi ổn định hơn. Nếu đang thi hoặc đang mở app, lệnh này chỉ restart panel.
@@ -253,9 +363,10 @@ apply_xfce_style() {
 apply_cinnamon_style() {
   local wallpaper="$1"
 
-  gsettings_set_if_exists org.cinnamon.desktop.interface gtk-theme "'Arc'"
-  gsettings_set_if_exists org.cinnamon.desktop.interface icon-theme "'Papirus'"
-  gsettings_set_if_exists org.cinnamon.desktop.interface font-name "'Noto Sans 10'"
+  gsettings_set_if_exists org.cinnamon.desktop.interface gtk-theme "'$GTK_THEME_NAME'"
+  gsettings_set_if_exists org.cinnamon.desktop.interface icon-theme "'$ICON_THEME_NAME'"
+  gsettings_set_if_exists org.cinnamon.desktop.interface font-name "'$FONT_NAME'"
+  gsettings_set_if_exists org.cinnamon.theme name "'$GTK_THEME_NAME'"
 
   if [[ -n "$wallpaper" && -f "$wallpaper" ]]; then
     gsettings_set_if_exists org.cinnamon.desktop.background picture-uri "'file://$wallpaper'"
@@ -263,7 +374,12 @@ apply_cinnamon_style() {
 }
 
 main() {
-  log "Áp giao diện EduLab quen Windows cho user: $USER"
+  local current_user="${USER:-}"
+  if [[ -z "$current_user" ]]; then
+    current_user="$(id -un 2>/dev/null || printf 'unknown')"
+  fi
+
+  log "Áp giao diện EduLab Windows 10-like cho user: $current_user"
 
   local wallpaper
   wallpaper="$(prepare_wallpaper || true)"

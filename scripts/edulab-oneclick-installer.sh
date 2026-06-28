@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 PROJECT_DIR="$(cd -- "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
 INSTALL_SCRIPT="$PROJECT_DIR/scripts/install-edulab.sh"
 INSTALL_PASSWORD_HASH_FILE="$PROJECT_DIR/.edulab-installer-password.sha256"
+STYLE_SCRIPT="$PROJECT_DIR/scripts/apply-desktop-style.sh"
 
 DEFAULT_BROWSER="chrome"
 DEFAULT_PASSWORD_PLACEHOLDER="EduLab@Local"
@@ -187,6 +188,12 @@ main() {
       --student-user "$target_user" \
       --student-fullname "$target_fullname" \
       --browser "$DEFAULT_BROWSER"
+  fi
+
+  if [[ "$(id -u </dev/null)" -ne 0 && -f "$STYLE_SCRIPT" ]]; then
+    echo
+    echo "Đang áp giao diện EduLab Windows 10-like cho phiên hiện tại..."
+    bash "$STYLE_SCRIPT" || true
   fi
 
   echo

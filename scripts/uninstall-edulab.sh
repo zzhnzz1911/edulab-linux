@@ -174,21 +174,41 @@ remove_user_shortcuts() {
   log "Gỡ shortcut và autostart EduLab của user $TARGET_USER."
   remove_file "$desktop_dir/ONLYOFFICE.desktop"
   remove_file "$desktop_dir/Trinh-duyet.desktop"
+  remove_file "$desktop_dir/Tep.desktop"
+  remove_file "$desktop_dir/Cai-dat.desktop"
+  remove_file "$desktop_dir/File-Explorer.desktop"
+  remove_file "$desktop_dir/Settings.desktop"
   remove_file "$desktop_dir/Bai-tap.desktop"
   remove_file "$desktop_dir/LMS.desktop"
   remove_file "$home/.config/autostart/edulab-first-login.desktop"
   remove_file "$home/.config/edulab/first-login.done"
   remove_file "$home/.config/edulab/desktop-style-v2.done"
+  remove_file "$home/.config/edulab/desktop-style-v3.done"
+  remove_file "$home/.config/edulab/desktop-style-v4.done"
   remove_file "$home/.local/share/backgrounds/edulab/edulab-familiar-wallpaper.svg"
+  remove_file "$home/.local/share/backgrounds/edulab/windows-10-blue-gradient.jpg"
+  remove_file "$home/.config/xfce4/panel/launcher-101/file-explorer.desktop"
+  remove_file "$home/.config/xfce4/panel/launcher-102/file-explorer.desktop"
+  remove_file "$home/.config/xfce4/panel/launcher-103/file-explorer.desktop"
+  remove_file "$home/.config/xfce4/panel/launcher-101/browser.desktop"
+  remove_file "$home/.config/xfce4/panel/launcher-102/browser.desktop"
+  remove_file "$home/.config/xfce4/panel/launcher-103/browser.desktop"
 
   remove_empty_dir "$home/.config/edulab"
   remove_empty_dir "$home/.local/share/backgrounds/edulab"
+  remove_empty_dir "$home/.config/xfce4/panel/launcher-101"
+  remove_empty_dir "$home/.config/xfce4/panel/launcher-102"
+  remove_empty_dir "$home/.config/xfce4/panel/launcher-103"
 }
 
 remove_skel_shortcuts() {
   log "Gỡ shortcut EduLab trong /etc/skel cho user tạo sau này."
   remove_file "/etc/skel/Desktop/ONLYOFFICE.desktop"
   remove_file "/etc/skel/Desktop/Trinh-duyet.desktop"
+  remove_file "/etc/skel/Desktop/Tep.desktop"
+  remove_file "/etc/skel/Desktop/Cai-dat.desktop"
+  remove_file "/etc/skel/Desktop/File-Explorer.desktop"
+  remove_file "/etc/skel/Desktop/Settings.desktop"
   remove_file "/etc/skel/Desktop/Bai-tap.desktop"
   remove_file "/etc/skel/Desktop/LMS.desktop"
   remove_file "/etc/skel/.config/autostart/edulab-first-login.desktop"
@@ -199,12 +219,22 @@ remove_system_helpers() {
   remove_file "/usr/local/bin/edulab-first-login.sh"
   remove_file "/usr/local/bin/edulab-open-exercises"
   remove_file "/usr/local/bin/edulab-open-lms"
+  remove_file "/usr/local/bin/edulab-open-settings"
+  remove_file "/usr/local/bin/edulab-open-files"
   remove_file "/usr/local/bin/edulab-browser"
   remove_file "/usr/local/bin/edulab-apply-desktop-style"
   remove_file "/etc/profile.d/edulab-input-method.sh"
   remove_file "/usr/share/backgrounds/edulab/edulab-familiar-wallpaper.svg"
+  remove_file "/usr/share/backgrounds/edulab/windows-10-blue-gradient.jpg"
 
   remove_empty_dir "/usr/share/backgrounds/edulab"
+
+  if [[ -d "/usr/share/themes/Windows 10" ]]; then
+    run rm -rf -- "/usr/share/themes/Windows 10"
+  fi
+  if [[ -d "/usr/share/icons/Windows 10" ]]; then
+    run rm -rf -- "/usr/share/icons/Windows 10"
+  fi
 }
 
 remove_browser_policies() {
