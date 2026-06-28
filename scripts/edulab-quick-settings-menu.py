@@ -14,7 +14,7 @@ from gi.repository import Gdk, GLib, Gtk
 
 
 WIDTH = 540
-HEIGHT = 548
+HEIGHT = 438
 TASKBAR_HEIGHT = 40
 PID_FILE = f"/tmp/edulab-quick-settings-menu-{os.getuid()}.pid"
 
@@ -290,7 +290,7 @@ def pointer_position(screen):
 
 class QuickSettingsMenu(Gtk.Window):
   def __init__(self):
-    Gtk.Window.__init__(self, type=Gtk.WindowType.TOPLEVEL)
+    Gtk.Window.__init__(self, type=Gtk.WindowType.POPUP)
     self.set_decorated(False)
     self.set_resizable(False)
     self.set_skip_taskbar_hint(True)
@@ -298,7 +298,7 @@ class QuickSettingsMenu(Gtk.Window):
     self.set_accept_focus(True)
     self.set_focus_on_map(True)
     self.set_keep_above(True)
-    self.set_type_hint(Gdk.WindowTypeHint.UTILITY)
+    self.set_type_hint(Gdk.WindowTypeHint.POPUP_MENU)
     self.set_default_size(WIDTH, HEIGHT)
     self.set_size_request(WIDTH, HEIGHT)
     self.had_focus = False
@@ -490,14 +490,20 @@ class QuickSettingsMenu(Gtk.Window):
     monitor = screen.get_primary_monitor()
     if monitor < 0:
       monitor = 0
-    geometry = screen.get_monitor_geometry(monitor)
+    try:
+      geometry = screen.get_monitor_workarea(monitor)
+    except AttributeError:
+      geometry = screen.get_monitor_geometry(monitor)
     pointer = pointer_position(screen)
-    anchor_x = geometry.x + geometry.width - 135
+    anchor_x = geometry.x + geometry.width - 28
     if pointer:
       anchor_x = pointer[0]
-    x = clamp(anchor_x - WIDTH + 78, geometry.x, geometry.x + geometry.width - WIDTH - 8)
-    y = geometry.y + geometry.height - HEIGHT - TASKBAR_HEIGHT - 8
+    x = clamp(anchor_x - WIDTH + 40, geometry.x + 4, geometry.x + geometry.width - WIDTH - 4)
+    y = geometry.y + geometry.height - HEIGHT - 4
+    if y > geometry.y + geometry.height - TASKBAR_HEIGHT - HEIGHT:
+      y = geometry.y + geometry.height - TASKBAR_HEIGHT - HEIGHT - 4
     self.move(max(x, geometry.x), max(y, geometry.y))
+    print(f"edulab quick settings shown at x={max(x, geometry.x)} y={max(y, geometry.y)}", flush=True)
 
   def on_key_press(self, _widget, event):
     if event.keyval == Gdk.KEY_Escape:
@@ -597,6 +603,8 @@ def main():
   window.grab_focus()
   GLib.idle_add(window.raise_window)
   GLib.timeout_add(140, window.raise_window)
+  while Gtk.events_pending():
+    Gtk.main_iteration_do(False)
   Gtk.main()
   remove_pid_file()
   return 0

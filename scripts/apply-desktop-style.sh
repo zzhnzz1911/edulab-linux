@@ -102,7 +102,7 @@ Type=Application
 Name=$name
 Exec=$exec_cmd
 Terminal=false
-StartupNotify=true
+StartupNotify=false
 Categories=$category
 ENTRY
   if [[ -n "$icon" ]]; then
@@ -265,6 +265,19 @@ start_taskbar_search() {
     sleep 0.2
   fi
   rm -f "/tmp/edulab-taskbar-search-$(id -u).pid" >/dev/null 2>&1 || true
+}
+
+stop_stale_tray_popups() {
+  if command -v pkill >/dev/null 2>&1; then
+    pkill -u "$(id -un)" -f "edulab-quick-settings-menu" >/dev/null 2>&1 || true
+    pkill -u "$(id -un)" -f "edulab-volume-menu" >/dev/null 2>&1 || true
+    pkill -u "$(id -un)" -f "edulab-notification-menu" >/dev/null 2>&1 || true
+  fi
+  rm -f \
+    "/tmp/edulab-quick-settings-menu-$(id -u).pid" \
+    "/tmp/edulab-volume-menu-$(id -u).pid" \
+    "/tmp/edulab-notification-menu-$(id -u).pid" \
+    >/dev/null 2>&1 || true
 }
 
 gsettings_set_if_exists() {
@@ -761,6 +774,7 @@ apply_xfce_style() {
 
   apply_xfce_taskbar
   configure_taskbar_search_autostart
+  stop_stale_tray_popups
   apply_file_explorer_style
   apply_input_switcher_style
   trust_desktop_launchers

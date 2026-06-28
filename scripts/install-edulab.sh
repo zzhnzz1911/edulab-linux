@@ -413,7 +413,7 @@ install_helper_scripts() {
 # Chạy một lần khi user đăng nhập để áp theme và bộ gõ.
 set -u
 
-MARKER="$HOME/.config/edulab/desktop-style-v25.done"
+MARKER="$HOME/.config/edulab/desktop-style-v26.done"
 mkdir -p "$HOME/.config/edulab"
 if [[ -f "$MARKER" ]]; then
   exit 0
@@ -500,7 +500,8 @@ set -u
 
 mkdir -p "$HOME/.cache/edulab"
 if command -v edulab-quick-settings-menu >/dev/null 2>&1; then
-  exec edulab-quick-settings-menu >>"$HOME/.cache/edulab/quick-settings.log" 2>&1
+  nohup edulab-quick-settings-menu >>"$HOME/.cache/edulab/quick-settings.log" 2>&1 &
+  exit 0
 fi
 
 if command -v xfce4-settings-manager >/dev/null 2>&1; then
