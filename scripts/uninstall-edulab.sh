@@ -178,6 +178,7 @@ remove_user_shortcuts() {
   remove_file "$desktop_dir/LMS.desktop"
   remove_file "$home/.config/autostart/edulab-first-login.desktop"
   remove_file "$home/.config/edulab/first-login.done"
+  remove_file "$home/.config/edulab/desktop-style-v2.done"
   remove_file "$home/.local/share/backgrounds/edulab/edulab-familiar-wallpaper.svg"
 
   remove_empty_dir "$home/.config/edulab"
