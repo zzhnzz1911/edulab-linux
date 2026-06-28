@@ -299,7 +299,7 @@ install_base_packages() {
     fonts-liberation fonts-crosextra-carlito fonts-crosextra-caladea \
     ibus ibus-gtk ibus-gtk3 ibus-gtk4 ibus-unikey im-config language-pack-vi \
     network-manager-gnome \
-    arc-theme papirus-icon-theme thunar thunar-volman xfce4-whiskermenu-plugin xfce4-genmon-plugin \
+    arc-theme papirus-icon-theme thunar thunar-volman xfce4-whiskermenu-plugin \
     xfce4-pulseaudio-plugin xfce4-power-manager xfce4-power-manager-plugins xfce4-notifyd \
     file-roller p7zip-full unzip
 }
@@ -407,13 +407,12 @@ install_helper_scripts() {
   local open_settings
   local open_files
   local browser_helper
-  local language_indicator
 
   first_login='#!/usr/bin/env bash
 # Chạy một lần khi user đăng nhập để áp theme và bộ gõ.
 set -u
 
-MARKER="$HOME/.config/edulab/desktop-style-v7.done"
+MARKER="$HOME/.config/edulab/desktop-style-v8.done"
 mkdir -p "$HOME/.config/edulab"
 if [[ -f "$MARKER" ]]; then
   exit 0
@@ -494,39 +493,18 @@ done
 exec xdg-open "${1:-about:blank}"
 '
 
-  language_indicator='#!/usr/bin/env bash
-# In nhãn bộ gõ cho xfce4-genmon-plugin, gần kiểu ENG/VIE của Windows 10.
-set -u
-
-engine="$(ibus engine 2>/dev/null || true)"
-case "${engine,,}" in
-  *unikey*|*vietnamese*|*vn*)
-    code="VIE"
-    ;;
-  *)
-    code="ENG"
-    ;;
-esac
-
-printf "<txt>%s</txt>\n" "$code"
-printf "<txtclick>/usr/local/bin/edulab-input-menu</txtclick>\n"
-printf "<tool>Click hoặc Super+Space đổi US/Vietnamese</tool>\n"
-'
-
   write_root_file "/usr/local/bin/edulab-first-login.sh" "$first_login"
   write_root_file "/usr/local/bin/edulab-open-lms" "$open_lms"
   write_root_file "/usr/local/bin/edulab-open-settings" "$open_settings"
   write_root_file "/usr/local/bin/edulab-open-files" "$open_files"
   write_root_file "/usr/local/bin/edulab-browser" "$browser_helper"
-  write_root_file "/usr/local/bin/edulab-language-indicator" "$language_indicator"
-  run rm -f /usr/local/bin/edulab-open-exercises
+  run rm -f /usr/local/bin/edulab-open-exercises /usr/local/bin/edulab-language-indicator
   run chmod 0755 \
     /usr/local/bin/edulab-first-login.sh \
     /usr/local/bin/edulab-open-lms \
     /usr/local/bin/edulab-open-settings \
     /usr/local/bin/edulab-open-files \
-    /usr/local/bin/edulab-browser \
-    /usr/local/bin/edulab-language-indicator
+    /usr/local/bin/edulab-browser
 
   if [[ -f "$SCRIPT_DIR/apply-desktop-style.sh" ]]; then
     run install -m 0755 "$SCRIPT_DIR/apply-desktop-style.sh" /usr/local/bin/edulab-apply-desktop-style
@@ -634,14 +612,33 @@ trust_desktop_entry() {
   local path="$1"
   local owner="$2"
   local uid
+  local runtime_dir
+  local bus_path
+  local checksum
+  local env_args=()
 
   [[ "$DRY_RUN" -eq 0 ]] || return 0
   command -v gio >/dev/null 2>&1 || return 0
   id "$owner" >/dev/null 2>&1 || return 0
 
   uid="$(id -u "$owner")"
-  runuser -u "$owner" -- env XDG_RUNTIME_DIR="/run/user/$uid" \
+  runtime_dir="/run/user/$uid"
+  bus_path="$runtime_dir/bus"
+  env_args=("XDG_RUNTIME_DIR=$runtime_dir")
+  if [[ -S "$bus_path" ]]; then
+    env_args+=("DBUS_SESSION_BUS_ADDRESS=unix:path=$bus_path")
+  fi
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    checksum="$(sha256sum "$path" 2>/dev/null | awk '{print $1}')"
+    if [[ -n "$checksum" ]]; then
+      runuser -u "$owner" -- env "${env_args[@]}" \
+        gio set -t string "$path" metadata::xfce-exe-checksum "$checksum" >/dev/null 2>&1 || true
+    fi
+  fi
+  runuser -u "$owner" -- env "${env_args[@]}" \
     gio set "$path" metadata::trusted true >/dev/null 2>&1 || true
+  touch "$path" >/dev/null 2>&1 || true
 }
 
 remove_file_if_exists() {

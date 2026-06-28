@@ -46,6 +46,10 @@ window {
   background: rgba(255, 255, 255, 0.12);
 }
 
+.rail label {
+  color: #f3f3f3;
+}
+
 .section-title {
   color: #d8d8d8;
   font-size: 11px;
@@ -119,6 +123,16 @@ def first_command(candidates):
     if command_exists(command[0]):
       return command
   return None
+
+
+def browser_icon_name():
+  if command_exists("google-chrome-stable") or command_exists("google-chrome"):
+    return "google-chrome"
+  if command_exists("chromium") or command_exists("chromium-browser"):
+    return "chromium"
+  if command_exists("firefox"):
+    return "firefox"
+  return "web-browser"
 
 
 def launch(command):
@@ -258,6 +272,8 @@ class StartMenu(Gtk.Window):
     self.current_results = []
     self.search_entry = None
     self.apps_list = None
+    self.rail = None
+    self.rail_expanded = False
 
     css_provider = Gtk.CssProvider()
     css_provider.load_from_data(CSS)
@@ -294,24 +310,40 @@ class StartMenu(Gtk.Window):
     return False
 
   def build_rail(self):
-    rail = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-    rail.set_size_request(48, HEIGHT)
-    add_class(rail, "rail")
+    self.rail = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+    add_class(self.rail, "rail")
+    self.rebuild_rail()
+    return self.rail
 
-    menu = self.rail_button("open-menu-symbolic", None)
-    rail.pack_start(menu, False, False, 10)
-    rail.pack_start(Gtk.Box(), True, True, 0)
+  def rebuild_rail(self):
+    for child in self.rail.get_children():
+      self.rail.remove(child)
+
+    width = 170 if self.rail_expanded else 48
+    self.rail.set_size_request(width, HEIGHT)
+    self.rail.pack_start(self.rail_button("open-menu-symbolic", None, "Start", self.toggle_rail), False, False, 10)
+    self.rail.pack_start(Gtk.Box(), True, True, 0)
 
     home_cmd = ["xdg-open", os.path.expanduser("~")]
-    rail.pack_start(self.rail_button("avatar-default-symbolic", home_cmd), False, False, 0)
-    rail.pack_start(self.rail_button("emblem-system-symbolic", self.settings_command()), False, False, 0)
-    rail.pack_start(self.rail_button("system-shutdown-symbolic", self.power_command()), False, False, 8)
-    return rail
+    self.rail.pack_start(self.rail_button("avatar-default-symbolic", home_cmd, "User"), False, False, 0)
+    self.rail.pack_start(self.rail_button("emblem-system-symbolic", self.settings_command(), "Settings"), False, False, 0)
+    self.rail.pack_start(self.rail_button("system-shutdown-symbolic", self.power_command(), "Power"), False, False, 8)
+    self.rail.show_all()
 
-  def rail_button(self, icon_name, command):
+  def toggle_rail(self, *_args):
+    self.rail_expanded = not self.rail_expanded
+    self.rebuild_rail()
+
+  def rail_button(self, icon_name, command, text=None, callback=None):
     button = Gtk.Button()
     button.set_relief(Gtk.ReliefStyle.NONE)
-    button.set_image(icon(icon_name, 18))
+    row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+    row.pack_start(icon(icon_name, 18), False, False, 0)
+    if self.rail_expanded and text:
+      row.pack_start(label(text), True, True, 0)
+    button.add(row)
+    if callback:
+      button.connect("clicked", callback)
     if command:
       button.connect("clicked", lambda *_: launch(command))
     return button
@@ -363,7 +395,7 @@ class StartMenu(Gtk.Window):
     entries = [
       {
         "name": "Browser",
-        "icon": "web-browser",
+        "icon": browser_icon_name(),
         "command": self.browser_command(),
         "search": "browser web internet chrome chromium firefox edge",
       },
@@ -501,7 +533,7 @@ class StartMenu(Gtk.Window):
     grid.set_row_spacing(2)
     grid.set_column_spacing(2)
 
-    grid.attach(self.tile("Browser", "web-browser", self.browser_command(), "tile-wide", 126, 94), 0, 0, 1, 1)
+    grid.attach(self.tile("Browser", browser_icon_name(), self.browser_command(), "tile-wide", 126, 94), 0, 0, 1, 1)
     grid.attach(self.tile("Settings", "preferences-system", self.settings_command(), "tile-blue2", 126, 94), 1, 0, 1, 1)
     grid.attach(self.tile("File Explorer", "system-file-manager", ["edulab-open-files"], "tile-blue2", 126, 94), 0, 1, 1, 1)
     grid.attach(self.tile("ONLYOFFICE", "onlyoffice-desktopeditors", ["desktopeditors"], "tile-teal", 126, 94), 1, 1, 1, 1)

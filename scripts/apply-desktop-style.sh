@@ -89,6 +89,7 @@ create_panel_launcher() {
   local exec_cmd="$4"
   local icon="$5"
   local category="${6:-Utility;}"
+  local show_label="${7:-false}"
   local launcher_dir="$HOME/.config/xfce4/panel/launcher-$id"
 
   panel_plugin_available launcher || return 1
@@ -100,15 +101,53 @@ Version=1.0
 Type=Application
 Name=$name
 Exec=$exec_cmd
-Icon=$icon
 Terminal=false
 StartupNotify=true
 Categories=$category
 ENTRY
+  if [[ -n "$icon" ]]; then
+    printf 'Icon=%s\n' "$icon" >> "$launcher_dir/$filename"
+  fi
 
   set_panel_plugin_type "$id" launcher
   xfconf_string_array xfce4-panel "/plugins/plugin-$id/items" "$filename"
-  xfconf_set xfce4-panel "/plugins/plugin-$id/show-label" bool "false"
+  xfconf_set xfce4-panel "/plugins/plugin-$id/show-label" bool "$show_label"
+}
+
+input_menu_command() {
+  if command -v edulab-input-menu >/dev/null 2>&1; then
+    printf '%s\n' "edulab-input-menu"
+  elif [[ -x "$SCRIPT_DIR/edulab-input-menu.py" ]]; then
+    printf '%s\n' "$SCRIPT_DIR/edulab-input-menu.py"
+  else
+    printf '%s\n' "ibus-setup"
+  fi
+}
+
+browser_icon_name() {
+  if command -v google-chrome-stable >/dev/null 2>&1 || command -v google-chrome >/dev/null 2>&1; then
+    printf '%s\n' "google-chrome"
+  elif command -v chromium >/dev/null 2>&1 || command -v chromium-browser >/dev/null 2>&1; then
+    printf '%s\n' "chromium"
+  elif command -v firefox >/dev/null 2>&1; then
+    printf '%s\n' "firefox"
+  else
+    printf '%s\n' "web-browser"
+  fi
+}
+
+create_input_indicator_icon() {
+  local icon_dir="$HOME/.config/edulab/icons"
+  local icon_path="$icon_dir/input-eng.svg"
+
+  mkdir -p "$icon_dir"
+  cat > "$icon_path" <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="none"/>
+  <text x="32" y="39" text-anchor="middle" font-family="Segoe UI, Noto Sans, Arial, sans-serif" font-size="23" font-weight="600" fill="#f8fafc">ENG</text>
+</svg>
+EOF
+  printf '%s\n' "$icon_path"
 }
 
 backup_xfce_panel() {
@@ -160,6 +199,7 @@ desktop_dir_for_current_user() {
 trust_desktop_launchers() {
   local desktop_dir
   local launcher
+  local checksum
 
   desktop_dir="$(desktop_dir_for_current_user)"
   [[ -d "$desktop_dir" ]] || return 0
@@ -170,8 +210,15 @@ trust_desktop_launchers() {
     [[ -e "$launcher" ]] || continue
     chmod 0755 "$launcher" 2>/dev/null || true
     if command -v gio >/dev/null 2>&1; then
+      if command -v sha256sum >/dev/null 2>&1; then
+        checksum="$(sha256sum "$launcher" 2>/dev/null | awk '{print $1}')"
+        if [[ -n "$checksum" ]]; then
+          gio set -t string "$launcher" metadata::xfce-exe-checksum "$checksum" >/dev/null 2>&1 || true
+        fi
+      fi
       gio set "$launcher" metadata::trusted true >/dev/null 2>&1 || true
     fi
+    touch "$launcher" 2>/dev/null || true
   done
 }
 
@@ -274,10 +321,14 @@ apply_xfce_taskbar() {
   local ids=()
   local id=101
   local start_command="edulab-start-menu"
+  local browser_icon
+  local input_icon
+  local input_command
 
   if ! command -v edulab-start-menu >/dev/null 2>&1; then
     start_command="xfce4-popup-whiskermenu"
   fi
+  browser_icon="$(browser_icon_name)"
 
   if create_panel_launcher "$id" "start.desktop" "Start" "$start_command" "start-here" "Utility;"; then
     ids+=("$id")
@@ -301,7 +352,7 @@ apply_xfce_taskbar() {
     id=$((id + 1))
   fi
 
-  if create_panel_launcher "$id" "browser.desktop" "Browser" "edulab-browser" "web-browser" "Network;WebBrowser;"; then
+  if create_panel_launcher "$id" "browser.desktop" "Browser" "edulab-browser" "$browser_icon" "Network;WebBrowser;"; then
     ids+=("$id")
     id=$((id + 1))
   fi
@@ -322,18 +373,24 @@ apply_xfce_taskbar() {
   id=$((id + 1))
 
   local plugin
-  for plugin in systray power-manager-plugin pulseaudio genmon clock notification-plugin showdesktop; do
+  for plugin in systray power-manager-plugin pulseaudio; do
     if panel_plugin_available "$plugin"; then
       set_panel_plugin_type "$id" "$plugin"
-      if [[ "$plugin" == "genmon" ]]; then
-        xfconf-query -c xfce4-panel -p "/plugins/plugin-$id/period" -r >/dev/null 2>&1 || true
-        xfconf_set xfce4-panel "/plugins/plugin-$id/command" string "/usr/local/bin/edulab-language-indicator"
-        xfconf_set xfce4-panel "/plugins/plugin-$id/update-period" int "1"
-        xfconf_set xfce4-panel "/plugins/plugin-$id/use-label" bool "false"
-        xfconf_set xfce4-panel "/plugins/plugin-$id/text" string ""
-        xfconf_set xfce4-panel "/plugins/plugin-$id/enable-single-row" bool "true"
-        xfconf_set xfce4-panel "/plugins/plugin-$id/font" string "$FONT_NAME"
-      fi
+      ids+=("$id")
+      id=$((id + 1))
+    fi
+  done
+
+  input_icon="$(create_input_indicator_icon)"
+  input_command="$(input_menu_command)"
+  if create_panel_launcher "$id" "input-language.desktop" "ENG" "$input_command" "$input_icon" "Utility;"; then
+    ids+=("$id")
+    id=$((id + 1))
+  fi
+
+  for plugin in clock notification-plugin showdesktop; do
+    if panel_plugin_available "$plugin"; then
+      set_panel_plugin_type "$id" "$plugin"
       if [[ "$plugin" == "clock" ]]; then
         xfconf_set xfce4-panel "/plugins/plugin-$id/mode" uint "2"
         xfconf_set xfce4-panel "/plugins/plugin-$id/digital-format" string "%H:%M"
