@@ -283,14 +283,6 @@ EOF
 
   # Taskbar tối, phẳng và dùng accent xanh kiểu Windows 10.
   cat > "$HOME/.config/gtk-3.0/gtk.css" <<'EOF'
-label {
-  color: #202020;
-}
-
-label:disabled {
-  color: #707070;
-}
-
 .xfce4-panel {
   background-color: #101010;
   color: #f8fafc;
@@ -302,9 +294,9 @@ label:disabled {
 .xfce4-panel .toggle {
   border-radius: 0;
   margin: 0;
-  padding: 2px 11px;
+  padding: 2px 7px;
   min-height: 34px;
-  min-width: 38px;
+  min-width: 32px;
   color: #f8fafc;
 }
 
@@ -340,8 +332,7 @@ label:disabled {
 menu,
 .menu,
 popover,
-.popover,
-window.popup {
+.popover {
   background-color: #f4f4f4;
   color: #202020;
 }
@@ -349,16 +340,14 @@ window.popup {
 menu label,
 menuitem label,
 popover label,
-.popover label,
-window.popup label {
+.popover label {
   color: #202020;
 }
 
 menuitem:disabled label,
 menuitem label:disabled,
 popover label:disabled,
-.popover label:disabled,
-window.popup label:disabled {
+.popover label:disabled {
   color: #707070;
 }
 
@@ -369,7 +358,62 @@ menuitem:selected label {
   background-color: #0078d7;
   color: #ffffff;
 }
+
+#XfceNotifyWindow,
+#XfceNotifyWindow.osd {
+  min-width: 330px;
+  padding: 12px;
+  background-color: #202020;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0;
+}
+
+#XfceNotifyWindow label,
+#XfceNotifyWindow label#summary,
+#XfceNotifyWindow label#body {
+  color: #f8fafc;
+}
+
+#XfceNotifyWindow button {
+  min-height: 30px;
+  padding: 4px 10px;
+  border-radius: 0;
+}
 EOF
+}
+
+apply_notification_style() {
+  local theme_name="EduLab-Windows10"
+  local theme_dir="$HOME/.themes/$theme_name/xfce-notify-4.0"
+
+  mkdir -p "$theme_dir"
+  cat > "$theme_dir/gtk.css" <<'EOF'
+#XfceNotifyWindow,
+#XfceNotifyWindow.osd,
+#XfceNotifyWindow .osd {
+  min-width: 330px;
+  padding: 12px;
+  background-color: #202020;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0;
+}
+
+#XfceNotifyWindow label,
+#XfceNotifyWindow label#summary,
+#XfceNotifyWindow label#body {
+  color: #f8fafc;
+}
+
+#XfceNotifyWindow button {
+  min-height: 30px;
+  padding: 4px 10px;
+  border-radius: 0;
+}
+EOF
+
+  xfconf_set xfce4-notifyd /theme string "$theme_name"
 }
 
 apply_xfce_wallpaper() {
@@ -635,6 +679,7 @@ main() {
   wallpaper="$(prepare_wallpaper || true)"
 
   apply_common_gtk_style
+  apply_notification_style
   apply_xfce_style "$wallpaper"
   apply_cinnamon_style "$wallpaper"
 

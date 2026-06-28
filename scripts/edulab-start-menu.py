@@ -703,6 +703,7 @@ class TaskbarSearch(Gtk.Window):
     self.set_size_request(TASKBAR_SEARCH_WIDTH, TASKBAR_HEIGHT)
     self.connect("button-press-event", self.on_button_press)
     self.start_menu = None
+    self.keyboard_grabbed = False
     self.suppress_changed = False
 
     root = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
@@ -745,6 +746,27 @@ class TaskbarSearch(Gtk.Window):
       gdk_window.raise_()
     return False
 
+  def grab_keyboard(self):
+    self.entry.grab_focus()
+    gdk_window = self.get_window()
+    if gdk_window is None:
+      return False
+    try:
+      status = Gdk.keyboard_grab(gdk_window, True, Gdk.CURRENT_TIME)
+      self.keyboard_grabbed = status == Gdk.GrabStatus.SUCCESS
+    except Exception:
+      self.keyboard_grabbed = False
+    return False
+
+  def release_keyboard(self):
+    if not self.keyboard_grabbed:
+      return
+    try:
+      Gdk.keyboard_ungrab(Gdk.CURRENT_TIME)
+    except Exception:
+      pass
+    self.keyboard_grabbed = False
+
   def ensure_start_menu(self):
     query = self.entry.get_text()
     if self.start_menu is None:
@@ -757,6 +779,7 @@ class TaskbarSearch(Gtk.Window):
     if gdk_window is not None:
       gdk_window.raise_()
     GLib.idle_add(self.entry.grab_focus)
+    GLib.idle_add(self.grab_keyboard)
 
   def on_start_menu_destroyed(self, *_args):
     self.start_menu = None
@@ -764,15 +787,17 @@ class TaskbarSearch(Gtk.Window):
   def hide_start_menu(self):
     if self.start_menu is not None:
       self.start_menu.hide()
+    self.release_keyboard()
 
   def on_focus_in(self, *_args):
     self.ensure_start_menu()
-    self.entry.grab_focus()
+    GLib.idle_add(self.grab_keyboard)
     return False
 
   def on_button_press(self, *_args):
     self.entry.grab_focus()
     self.ensure_start_menu()
+    GLib.idle_add(self.grab_keyboard)
     return False
 
   def on_focus_out(self, *_args):
