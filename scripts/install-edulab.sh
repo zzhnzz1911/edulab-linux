@@ -293,11 +293,13 @@ install_base_packages() {
     ca-certificates curl git gnupg lsb-release sudo \
     xdg-utils xdg-user-dirs desktop-file-utils dbus-x11 \
     libglib2.0-bin x11-xkb-utils \
+    python3-gi gir1.2-gtk-3.0 \
     gtk2-engines-murrine gtk2-engines-pixbuf hicolor-icon-theme adwaita-icon-theme \
     fonts-dejavu fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji \
     fonts-liberation fonts-crosextra-carlito fonts-crosextra-caladea \
     ibus ibus-gtk ibus-gtk3 ibus-gtk4 ibus-unikey im-config language-pack-vi \
-    arc-theme papirus-icon-theme thunar thunar-volman xfce4-whiskermenu-plugin xfce4-xkb-plugin \
+    network-manager-gnome \
+    arc-theme papirus-icon-theme thunar thunar-volman xfce4-whiskermenu-plugin xfce4-genmon-plugin \
     xfce4-pulseaudio-plugin xfce4-power-manager xfce4-power-manager-plugins xfce4-notifyd \
     file-roller p7zip-full unzip
 }
@@ -405,12 +407,13 @@ install_helper_scripts() {
   local open_settings
   local open_files
   local browser_helper
+  local language_indicator
 
   first_login='#!/usr/bin/env bash
 # Chạy một lần khi user đăng nhập để áp theme và bộ gõ.
 set -u
 
-MARKER="$HOME/.config/edulab/desktop-style-v5.done"
+MARKER="$HOME/.config/edulab/desktop-style-v6.done"
 mkdir -p "$HOME/.config/edulab"
 if [[ -f "$MARKER" ]]; then
   exit 0
@@ -491,23 +494,49 @@ done
 exec xdg-open "${1:-about:blank}"
 '
 
+  language_indicator='#!/usr/bin/env bash
+# In nhãn bộ gõ cho xfce4-genmon-plugin, gần kiểu ENG/VIE của Windows 10.
+set -u
+
+engine="$(ibus engine 2>/dev/null || true)"
+case "${engine,,}" in
+  *unikey*|*vietnamese*|*vn*)
+    code="VIE"
+    ;;
+  *)
+    code="ENG"
+    ;;
+esac
+
+printf "<txt>%s</txt>\n" "$code"
+printf "<tool>Super+Space đổi US/Vietnamese</tool>\n"
+'
+
   write_root_file "/usr/local/bin/edulab-first-login.sh" "$first_login"
   write_root_file "/usr/local/bin/edulab-open-lms" "$open_lms"
   write_root_file "/usr/local/bin/edulab-open-settings" "$open_settings"
   write_root_file "/usr/local/bin/edulab-open-files" "$open_files"
   write_root_file "/usr/local/bin/edulab-browser" "$browser_helper"
+  write_root_file "/usr/local/bin/edulab-language-indicator" "$language_indicator"
   run rm -f /usr/local/bin/edulab-open-exercises
   run chmod 0755 \
     /usr/local/bin/edulab-first-login.sh \
     /usr/local/bin/edulab-open-lms \
     /usr/local/bin/edulab-open-settings \
     /usr/local/bin/edulab-open-files \
-    /usr/local/bin/edulab-browser
+    /usr/local/bin/edulab-browser \
+    /usr/local/bin/edulab-language-indicator
 
   if [[ -f "$SCRIPT_DIR/apply-desktop-style.sh" ]]; then
     run install -m 0755 "$SCRIPT_DIR/apply-desktop-style.sh" /usr/local/bin/edulab-apply-desktop-style
   else
     log "CẢNH BÁO: Không tìm thấy scripts/apply-desktop-style.sh, bỏ qua helper giao diện."
+  fi
+
+  if [[ -f "$SCRIPT_DIR/edulab-start-menu.py" ]]; then
+    run install -m 0755 "$SCRIPT_DIR/edulab-start-menu.py" /usr/local/bin/edulab-start-menu
+  else
+    log "CẢNH BÁO: Không tìm thấy scripts/edulab-start-menu.py, bỏ qua Start menu tùy biến."
   fi
 }
 

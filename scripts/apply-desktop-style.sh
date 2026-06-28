@@ -273,8 +273,16 @@ apply_xfce_taskbar() {
 
   local ids=()
   local id=101
+  local start_command="edulab-start-menu"
 
-  if panel_plugin_available whiskermenu; then
+  if ! command -v edulab-start-menu >/dev/null 2>&1; then
+    start_command="xfce4-popup-whiskermenu"
+  fi
+
+  if create_panel_launcher "$id" "start.desktop" "Start" "$start_command" "start-here" "Utility;"; then
+    ids+=("$id")
+    id=$((id + 1))
+  elif panel_plugin_available whiskermenu; then
     set_panel_plugin_type "$id" whiskermenu
     xfconf_set xfce4-panel "/plugins/plugin-$id/button-icon" string "start-here"
     xfconf_set xfce4-panel "/plugins/plugin-$id/button-title" string ""
@@ -314,12 +322,19 @@ apply_xfce_taskbar() {
   id=$((id + 1))
 
   local plugin
-  for plugin in xkb systray notification-plugin pulseaudio power-manager-plugin clock showdesktop; do
+  for plugin in systray power-manager-plugin pulseaudio genmon clock notification-plugin showdesktop; do
     if panel_plugin_available "$plugin"; then
       set_panel_plugin_type "$id" "$plugin"
+      if [[ "$plugin" == "genmon" ]]; then
+        xfconf_set xfce4-panel "/plugins/plugin-$id/command" string "edulab-language-indicator"
+        xfconf_set xfce4-panel "/plugins/plugin-$id/period" uint "1"
+        xfconf_set xfce4-panel "/plugins/plugin-$id/use-label" bool "false"
+        xfconf_set xfce4-panel "/plugins/plugin-$id/text" string ""
+      fi
       if [[ "$plugin" == "clock" ]]; then
         xfconf_set xfce4-panel "/plugins/plugin-$id/mode" uint "2"
-        xfconf_set xfce4-panel "/plugins/plugin-$id/digital-format" string "%H:%M  %d/%m"
+        xfconf_set xfce4-panel "/plugins/plugin-$id/digital-format" string "%H:%M"
+        xfconf_set xfce4-panel "/plugins/plugin-$id/tooltip-format" string "%A, %d/%m/%Y"
       fi
       ids+=("$id")
       id=$((id + 1))
@@ -411,8 +426,12 @@ apply_xfce_style() {
   xfconf_set xfce4-desktop /desktop-icons/file-icons/show-filesystem bool "false"
   xfconf_set xfce4-desktop /desktop-icons/file-icons/show-removable bool "false"
 
-  # Phím tắt quen thuộc: Super mở menu, Super+E mở File Explorer, Super+I mở Settings.
-  xfconf_set xfce4-keyboard-shortcuts "/commands/custom/Super_L" string "xfce4-popup-whiskermenu"
+  # Phím tắt quen thuộc: Super mở Start, Super+E mở File Explorer, Super+I mở Settings.
+  if command -v edulab-start-menu >/dev/null 2>&1; then
+    xfconf_set xfce4-keyboard-shortcuts "/commands/custom/Super_L" string "edulab-start-menu"
+  else
+    xfconf_set xfce4-keyboard-shortcuts "/commands/custom/Super_L" string "xfce4-popup-whiskermenu"
+  fi
   xfconf_set xfce4-keyboard-shortcuts "/commands/custom/<Super>e" string "edulab-open-files"
   xfconf_set xfce4-keyboard-shortcuts "/commands/custom/<Super>i" string "edulab-open-settings"
 

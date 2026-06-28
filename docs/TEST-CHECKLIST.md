@@ -38,7 +38,8 @@ Checklist này dùng cho VM master, máy clone thử và lô máy thật trướ
 - [ ] Shortcut File Explorer mở thư mục cá nhân trong file manager.
 - [ ] Shortcut Settings mở trung tâm cài đặt hệ thống.
 - [ ] Nếu có cấu hình `--lms-url`, shortcut LMS mở đúng URL của trường.
-- [ ] Taskbar nằm dưới, nút Start bên trái, File Explorer/trình duyệt được ghim, app icon-only, tray/clock bên phải.
+- [ ] Taskbar nằm dưới, nút Start bên trái, File Explorer/trình duyệt được ghim, app icon-only, tray/power/network/volume/ENG/clock/notification bên phải.
+- [ ] Nút Start hoặc phím Super mở menu tối có rail user/settings/power, app list và tile ghim.
 - [ ] Desktop shortcut không hiện cảnh báo "Untrusted application launcher" khi mở.
 - [ ] Theme GTK/Xfwm và icon theme đang là `Windows 10`.
 - [ ] Wallpaper hiển thị đúng hình gradient xanh Windows 10-like.
@@ -47,7 +48,7 @@ Checklist này dùng cho VM master, máy clone thử và lô máy thật trướ
 
 - [ ] `ibus-unikey` đã cài.
 - [ ] Có thể đổi US/Vietnamese bằng `Super+Space`.
-- [ ] Panel có chỉ báo keyboard layout/input gần khu vực tray.
+- [ ] Taskbar hiện chữ `ENG`/`VIE` thay vì icon cờ keyboard layout.
 - [ ] Gõ được tiếng Việt trong trình duyệt.
 - [ ] Gõ được tiếng Việt trong ONLYOFFICE Writer.
 - [ ] Gõ được tiếng Việt trong tên file và thư mục.
