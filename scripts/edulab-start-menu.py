@@ -331,6 +331,7 @@ class StartMenu(Gtk.Window):
     self.set_skip_pager_hint(True)
     self.set_keep_above(True)
     if self.controlled:
+      self.set_accept_focus(False)
       self.set_focus_on_map(False)
     self.set_type_hint(Gdk.WindowTypeHint.DROPDOWN_MENU)
     self.set_default_size(WIDTH, HEIGHT)
@@ -686,7 +687,7 @@ class StartMenu(Gtk.Window):
 
 class TaskbarSearch(Gtk.Window):
   def __init__(self):
-    Gtk.Window.__init__(self, type=Gtk.WindowType.TOPLEVEL)
+    Gtk.Window.__init__(self, type=Gtk.WindowType.POPUP)
     install_css()
     self.set_title("EduLab Taskbar Search")
     self.set_wmclass("edulab-taskbar-search", "EduLabTaskbarSearch")
@@ -697,7 +698,7 @@ class TaskbarSearch(Gtk.Window):
     self.set_accept_focus(True)
     self.set_focus_on_map(False)
     self.set_keep_above(True)
-    self.set_type_hint(Gdk.WindowTypeHint.UTILITY)
+    self.set_type_hint(Gdk.WindowTypeHint.DOCK)
     self.set_default_size(TASKBAR_SEARCH_WIDTH, TASKBAR_HEIGHT)
     self.set_size_request(TASKBAR_SEARCH_WIDTH, TASKBAR_HEIGHT)
     self.connect("button-press-event", self.on_button_press)
@@ -726,9 +727,9 @@ class TaskbarSearch(Gtk.Window):
     GLib.timeout_add_seconds(2, self.keep_positioned)
 
   def position_window(self):
-    workarea = primary_monitor_workarea()
-    x = workarea.x + START_BUTTON_WIDTH
-    y = workarea.y + workarea.height
+    geometry = primary_monitor_geometry()
+    x = geometry.x + START_BUTTON_WIDTH
+    y = geometry.y + geometry.height - TASKBAR_HEIGHT
     self.move(max(x, 0), max(y, 0))
 
   def keep_positioned(self):
@@ -755,6 +756,7 @@ class TaskbarSearch(Gtk.Window):
     gdk_window = self.start_menu.get_window()
     if gdk_window is not None:
       gdk_window.raise_()
+    GLib.idle_add(self.entry.grab_focus)
 
   def on_start_menu_destroyed(self, *_args):
     self.start_menu = None
@@ -779,8 +781,6 @@ class TaskbarSearch(Gtk.Window):
 
   def hide_start_menu_if_idle(self):
     if self.entry.has_focus():
-      return False
-    if self.start_menu is not None and (self.start_menu.has_toplevel_focus() or self.start_menu.is_active()):
       return False
     self.hide_start_menu()
     return False
