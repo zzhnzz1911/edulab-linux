@@ -490,20 +490,15 @@ class QuickSettingsMenu(Gtk.Window):
     monitor = screen.get_primary_monitor()
     if monitor < 0:
       monitor = 0
-    try:
-      geometry = screen.get_monitor_workarea(monitor)
-    except AttributeError:
-      geometry = screen.get_monitor_geometry(monitor)
-    pointer = pointer_position(screen)
-    anchor_x = geometry.x + geometry.width - 28
-    if pointer:
-      anchor_x = pointer[0]
-    x = clamp(anchor_x - WIDTH + 40, geometry.x + 4, geometry.x + geometry.width - WIDTH - 4)
-    y = geometry.y + geometry.height - HEIGHT - 4
-    if y > geometry.y + geometry.height - TASKBAR_HEIGHT - HEIGHT:
-      y = geometry.y + geometry.height - TASKBAR_HEIGHT - HEIGHT - 4
-    self.move(max(x, geometry.x), max(y, geometry.y))
-    print(f"edulab quick settings shown at x={max(x, geometry.x)} y={max(y, geometry.y)}", flush=True)
+    geometry = screen.get_monitor_geometry(monitor)
+    screen_width = max(geometry.width, screen.get_width())
+    screen_height = max(geometry.height, screen.get_height())
+    x = geometry.x + screen_width - WIDTH - 8
+    y = geometry.y + screen_height - TASKBAR_HEIGHT - HEIGHT - 8
+    x = max(x, geometry.x + 8)
+    y = max(y, geometry.y + 8)
+    self.move(x, y)
+    print(f"edulab quick settings shown at x={x} y={y}", flush=True)
 
   def on_key_press(self, _widget, event):
     if event.keyval == Gdk.KEY_Escape:
