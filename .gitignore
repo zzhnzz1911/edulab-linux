@@ -10,6 +10,7 @@ vms/
 *.log
 *.tmp
 *.swp
+.edulab-installer-password.sha256
 
 # Metadata hệ điều hành/editor
 .DS_Store

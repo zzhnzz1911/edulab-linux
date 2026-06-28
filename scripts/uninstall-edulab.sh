@@ -52,11 +52,11 @@ run() {
 parse_args() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --target-user|--student-user)
+      --target-user)
         TARGET_USER="${2:-}"
         shift 2
         ;;
-      --target-user=*|--student-user=*)
+      --target-user=*)
         TARGET_USER="${1#*=}"
         shift
         ;;
@@ -178,18 +178,13 @@ remove_user_shortcuts() {
   log "Gỡ shortcut và autostart EduLab của user $TARGET_USER."
   remove_file "$desktop_dir/ONLYOFFICE.desktop"
   remove_file "$desktop_dir/Trinh-duyet.desktop"
-  remove_file "$desktop_dir/Tep.desktop"
-  remove_file "$desktop_dir/Cai-dat.desktop"
   remove_file "$desktop_dir/File-Explorer.desktop"
   remove_file "$desktop_dir/Settings.desktop"
   remove_file "$desktop_dir/Bai-tap.desktop"
   remove_file "$desktop_dir/LMS.desktop"
   remove_file "$home/.config/autostart/edulab-first-login.desktop"
   remove_file "$home/.config/edulab/first-login.done"
-  remove_file "$home/.config/edulab/desktop-style-v2.done"
-  remove_file "$home/.config/edulab/desktop-style-v3.done"
   remove_file "$home/.config/edulab/desktop-style-v4.done"
-  remove_file "$home/.local/share/backgrounds/edulab/edulab-familiar-wallpaper.svg"
   remove_file "$home/.local/share/backgrounds/edulab/windows-10-blue-gradient.jpg"
   remove_file "$home/.config/xfce4/panel/launcher-101/file-explorer.desktop"
   remove_file "$home/.config/xfce4/panel/launcher-102/file-explorer.desktop"
@@ -205,19 +200,6 @@ remove_user_shortcuts() {
   remove_empty_dir "$home/.config/xfce4/panel/launcher-103"
 }
 
-remove_skel_shortcuts() {
-  log "Gỡ shortcut EduLab trong /etc/skel nếu còn sót từ bản cũ."
-  remove_file "/etc/skel/Desktop/ONLYOFFICE.desktop"
-  remove_file "/etc/skel/Desktop/Trinh-duyet.desktop"
-  remove_file "/etc/skel/Desktop/Tep.desktop"
-  remove_file "/etc/skel/Desktop/Cai-dat.desktop"
-  remove_file "/etc/skel/Desktop/File-Explorer.desktop"
-  remove_file "/etc/skel/Desktop/Settings.desktop"
-  remove_file "/etc/skel/Desktop/Bai-tap.desktop"
-  remove_file "/etc/skel/Desktop/LMS.desktop"
-  remove_file "/etc/skel/.config/autostart/edulab-first-login.desktop"
-}
-
 remove_system_helpers() {
   log "Gỡ helper và cấu hình hệ thống của EduLab."
   remove_file "/usr/local/bin/edulab-first-login.sh"
@@ -228,7 +210,6 @@ remove_system_helpers() {
   remove_file "/usr/local/bin/edulab-browser"
   remove_file "/usr/local/bin/edulab-apply-desktop-style"
   remove_file "/etc/profile.d/edulab-input-method.sh"
-  remove_file "/usr/share/backgrounds/edulab/edulab-familiar-wallpaper.svg"
   remove_file "/usr/share/backgrounds/edulab/windows-10-blue-gradient.jpg"
 
   remove_empty_dir "/usr/share/backgrounds/edulab"
@@ -328,7 +309,6 @@ main() {
 
   log "Bắt đầu gỡ cấu hình $PROJECT_NAME."
   remove_user_shortcuts "$home" "$desktop_dir"
-  remove_skel_shortcuts
   remove_system_helpers
   remove_browser_policies
   remove_installed_apps

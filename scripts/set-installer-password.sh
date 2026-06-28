@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Đặt mã cài đặt riêng cho launcher EduLab.
-# Script chỉ lưu SHA-256 hash, không lưu mật khẩu thô trong repository.
+# Script chỉ lưu SHA-256 hash, không lưu mật khẩu thô.
 
 set -Eeuo pipefail
 
@@ -75,8 +75,8 @@ main() {
   chmod 0600 "$HASH_FILE" 2>/dev/null || true
 
   echo
-  echo "Đã tạo file hash: $HASH_FILE"
-  echo "Muốn bật mã cài đặt cho bản trên GitHub, commit và push file này."
+  echo "Đã tạo file hash local: $HASH_FILE"
+  echo "File này được .gitignore bỏ qua; chỉ copy vào gói cài riêng khi thật sự muốn bật mã cài đặt."
 }
 
 main "$@"

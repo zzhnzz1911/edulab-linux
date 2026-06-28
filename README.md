@@ -30,7 +30,7 @@ Install-EduLab.desktop
 
 Khi cài, chương trình có thể hỏi:
 
-- Mã EduLab do người cung cấp bộ cài gửi.
+- Mã EduLab nếu bạn đã tự tạo `.edulab-installer-password.sha256` cho bản cài riêng.
 - Xác nhận có muốn cài đặt không.
 - Mật khẩu admin/sudo của máy Linux.
 
