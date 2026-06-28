@@ -6,9 +6,8 @@ Checklist này dùng cho VM master, máy clone thử và lô máy thật trướ
 
 - [ ] ISO đúng phiên bản LTS, 64-bit.
 - [ ] Máy boot ổn định sau cài đặt và sau `sudo apt upgrade -y`.
-- [ ] Tài khoản quản trị riêng tồn tại, ví dụ `adminlab`.
-- [ ] Tài khoản học sinh `student` đăng nhập được.
-- [ ] Tài khoản học sinh không thuộc nhóm `sudo` hoặc `admin`.
+- [ ] Tài khoản hiện tại/admin đăng nhập được.
+- [ ] Tài khoản hiện tại/admin có quyền `sudo` để chạy bộ cài.
 - [ ] Timezone, ngày giờ, NTP đúng với địa phương.
 - [ ] Mạng LAN/Wi-Fi hoạt động.
 - [ ] Âm thanh, màn hình, bàn phím, chuột hoạt động.
@@ -24,9 +23,9 @@ Checklist này dùng cho VM master, máy clone thử và lô máy thật trướ
 - [ ] Theme/icon Windows 10 tải được từ GitHub hoặc có cảnh báo fallback rõ ràng trong log.
 - [ ] Wallpaper `windows-10-blue-gradient.jpg` được cài vào `/usr/share/backgrounds/edulab/`.
 
-## 3. Kiểm thử Desktop học sinh
+## 3. Kiểm thử Desktop user hiện tại
 
-- [ ] Đăng nhập tài khoản học sinh lần đầu không hiện lỗi.
+- [ ] Đăng nhập lại tài khoản hiện tại/admin sau khi cài không hiện lỗi.
 - [ ] Desktop có shortcut ONLYOFFICE.
 - [ ] Desktop có shortcut Trình duyệt.
 - [ ] Desktop có shortcut File Explorer.
@@ -90,14 +89,14 @@ sudo reboot
 - [ ] Sau reboot, `hostnamectl` hiển thị hostname mới.
 - [ ] `/etc/machine-id` khác với máy master.
 - [ ] Cache apt đã được dọn.
-- [ ] Lịch sử shell tài khoản học sinh đã được dọn.
+- [ ] Lịch sử shell tài khoản hiện tại/admin đã được dọn nếu quy trình clone yêu cầu.
 - [ ] File trong `~/Bai-tap`, Desktop, Documents, Downloads không bị xóa.
 - [ ] Nếu dùng `--reset-ssh-host-keys`, SSH host keys được tạo lại.
 - [ ] Log tồn tại tại `/var/log/edulab-post-clone.log`.
 
 ## 8. Kiểm thử hiệu năng máy yếu đến trung bình
 
-- [ ] Login tài khoản học sinh dưới 60 giây trên HDD, dưới 30 giây trên SSD.
+- [ ] Login tài khoản hiện tại/admin dưới 60 giây trên HDD, dưới 30 giây trên SSD.
 - [ ] Mở trình duyệt + ONLYOFFICE đồng thời vẫn dùng được.
 - [ ] RAM idle sau login hợp lý với cấu hình máy.
 - [ ] Không có dịch vụ nền lạ hoặc phần mềm không dùng đến.
@@ -110,6 +109,5 @@ sudo reboot
 - [ ] Mạng nội bộ không báo trùng hostname/IP.
 - [ ] Nếu có LMS, tất cả máy vào LMS được.
 - [ ] Tất cả máy mở file mẫu IC3 được.
-- [ ] Tài khoản quản trị được bảo mật bằng mật khẩu riêng.
-- [ ] Tài khoản học sinh đúng chính sách mật khẩu của trường.
+- [ ] Tài khoản hiện tại/admin được bảo mật bằng mật khẩu riêng.
 - [ ] Đã ghi nhận phiên bản ISO, ngày tạo image, ngày clone, người thực hiện.

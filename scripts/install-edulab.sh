@@ -20,10 +20,7 @@ WIN10_WALLPAPER_NAME="windows-10-blue-gradient.jpg"
 WIN10_WALLPAPER_DOWNLOAD_NAME="Wallpaper Alchemy - Hình Nền Gradient Xanh Mặc Định Windows 10 4K.jpg"
 WIN10_SYSTEM_WALLPAPER="/usr/share/backgrounds/edulab/$WIN10_WALLPAPER_NAME"
 
-STUDENT_USER="${STUDENT_USER:-student}"
-STUDENT_FULLNAME="${STUDENT_FULLNAME:-Hoc sinh}"
-STUDENT_PASSWORD="${STUDENT_PASSWORD:-Student@123}"
-RESET_STUDENT_PASSWORD=0
+TARGET_USER="${TARGET_USER:-${EDULAB_TARGET_USER:-}}"
 
 LMS_URL="${LMS_URL:-}"
 BROWSER_CHOICE="${BROWSER_CHOICE:-chrome}"
@@ -41,10 +38,7 @@ Cách dùng:
   sudo bash scripts/install-edulab.sh [tùy chọn]
 
 Tùy chọn thường dùng:
-  --student-user USER             Tên tài khoản học sinh. Mặc định: student
-  --student-fullname NAME         Tên hiển thị. Mặc định: Hoc sinh
-  --student-password PASSWORD     Mật khẩu khi tạo tài khoản mới. Mặc định: Student@123
-  --reset-student-password        Đổi mật khẩu nếu tài khoản học sinh đã tồn tại
+  --target-user USER              Tài khoản hiện có cần cài giao diện. Mặc định: user đang gọi sudo
   --lms-url URL                   Địa chỉ LMS để tạo shortcut và chính sách trình duyệt. Mặc định: bỏ qua
   --browser chrome|chromium|edge|none
                                   Trình duyệt cần cài. Mặc định: chrome
@@ -55,8 +49,6 @@ Tùy chọn thường dùng:
 
 Ví dụ:
   sudo bash scripts/install-edulab.sh \
-    --student-user student \
-    --student-password 'Student@123' \
     --browser chrome
 USAGE
 }
@@ -92,20 +84,12 @@ write_root_file() {
 parse_args() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --student-user)
-        STUDENT_USER="${2:-}"
+      --target-user)
+        TARGET_USER="${2:-}"
         shift 2
         ;;
-      --student-fullname)
-        STUDENT_FULLNAME="${2:-}"
-        shift 2
-        ;;
-      --student-password)
-        STUDENT_PASSWORD="${2:-}"
-        shift 2
-        ;;
-      --reset-student-password)
-        RESET_STUDENT_PASSWORD=1
+      --target-user=*)
+        TARGET_USER="${1#*=}"
         shift
         ;;
       --lms-url)
@@ -139,6 +123,20 @@ parse_args() {
   done
 }
 
+resolve_target_user() {
+  if [[ -n "$TARGET_USER" ]]; then
+    return
+  fi
+
+  if [[ -n "${SUDO_USER:-}" && "${SUDO_USER:-}" != "root" ]]; then
+    TARGET_USER="$SUDO_USER"
+  elif [[ -n "${USER:-}" && "${USER:-}" != "root" ]]; then
+    TARGET_USER="$USER"
+  else
+    TARGET_USER="$(id -un 2>/dev/null || true)"
+  fi
+}
+
 setup_logging() {
   if [[ "$DRY_RUN" -eq 0 ]]; then
     install -d -m 0755 "$(dirname "$LOG_FILE")"
@@ -148,11 +146,11 @@ setup_logging() {
 }
 
 validate_config() {
-  [[ -n "$STUDENT_USER" ]] || die "Tên tài khoản học sinh không được trống."
-  [[ "$STUDENT_USER" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || \
-    die "Tên tài khoản '$STUDENT_USER' không hợp lệ. Chỉ dùng chữ thường, số, _, - và bắt đầu bằng chữ/_"
+  [[ -n "$TARGET_USER" ]] || die "Không xác định được user cần cài. Hãy chạy bằng sudo từ user thật hoặc truyền --target-user USER."
+  [[ "$TARGET_USER" != "root" ]] || die "Không cài giao diện Desktop cho root. Hãy chạy sudo từ user hiện tại hoặc truyền --target-user USER thật."
+  [[ "$TARGET_USER" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || \
+    die "Tên tài khoản '$TARGET_USER' không hợp lệ. Chỉ dùng chữ thường, số, _, - và bắt đầu bằng chữ/_"
 
-  [[ -n "$STUDENT_PASSWORD" ]] || die "Mật khẩu học sinh không được trống."
   if [[ -n "$LMS_URL" ]]; then
     [[ "$LMS_URL" =~ ^https?:// ]] || die "LMS_URL phải bắt đầu bằng http:// hoặc https://"
     [[ "$LMS_URL" != *\"* && "$LMS_URL" != *\\* ]] || die "LMS_URL không được chứa dấu ngoặc kép hoặc dấu \\."
@@ -165,6 +163,10 @@ validate_config() {
 
   if [[ "$BROWSER_CHOICE" == "edge" && "$ALLOW_MICROSOFT_EDGE" -ne 1 ]]; then
     die "Microsoft Edge dùng tên/icon Microsoft. Nếu khách hàng chấp thuận, chạy lại với --allow-microsoft-edge."
+  fi
+
+  if [[ "$DRY_RUN" -eq 0 ]]; then
+    id "$TARGET_USER" >/dev/null 2>&1 || die "Không tìm thấy tài khoản hiện có: $TARGET_USER."
   fi
 }
 
@@ -397,32 +399,6 @@ install_browser() {
   esac
 }
 
-create_student_user() {
-  local user_created=0
-
-  if id "$STUDENT_USER" >/dev/null 2>&1; then
-    log "Tài khoản $STUDENT_USER đã tồn tại."
-  else
-    log "Tạo tài khoản học sinh: $STUDENT_USER"
-    run useradd -m -s /bin/bash -c "$STUDENT_FULLNAME" "$STUDENT_USER"
-    user_created=1
-  fi
-
-  if [[ "$DRY_RUN" -eq 0 ]]; then
-    if [[ "$user_created" -eq 1 || "$RESET_STUDENT_PASSWORD" -eq 1 ]]; then
-      log "Thiết lập mật khẩu cho $STUDENT_USER."
-      printf '%s:%s\n' "$STUDENT_USER" "$STUDENT_PASSWORD" | chpasswd
-      passwd -u "$STUDENT_USER" >/dev/null 2>&1 || true
-    else
-      log "Không đổi mật khẩu tài khoản đã tồn tại. Dùng --reset-student-password nếu cần."
-    fi
-
-    if id -nG "$STUDENT_USER" | grep -Eq '(^| )(sudo|admin)( |$)'; then
-      log "CẢNH BÁO: $STUDENT_USER đang thuộc nhóm quản trị. Nên bỏ quyền sudo trước khi bàn giao phòng máy."
-    fi
-  fi
-}
-
 install_helper_scripts() {
   local first_login
   local open_exercises
@@ -432,7 +408,7 @@ install_helper_scripts() {
   local browser_helper
 
   first_login='#!/usr/bin/env bash
-# Chạy một lần khi học sinh đăng nhập để áp theme và bộ gõ.
+# Chạy một lần khi user đăng nhập để áp theme và bộ gõ.
 set -u
 
 MARKER="$HOME/.config/edulab/desktop-style-v4.done"
@@ -665,37 +641,27 @@ install_shortcuts_to_dir() {
   fi
 }
 
-configure_student_desktop() {
+configure_target_desktop() {
   local home
   local group
   local desktop_dir
 
-  home="$(getent passwd "$STUDENT_USER" | cut -d: -f6)"
-  [[ -n "$home" ]] || die "Không tìm thấy home của $STUDENT_USER."
-  group="$(id -gn "$STUDENT_USER")"
+  home="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
+  [[ -n "$home" ]] || die "Không tìm thấy home của $TARGET_USER."
+  group="$(id -gn "$TARGET_USER")"
 
-  log "Tạo thư mục bài tập, shortcut và cấu hình desktop cho $STUDENT_USER."
+  log "Tạo thư mục bài tập, shortcut và cấu hình desktop cho $TARGET_USER."
   run install -d -m 0755 "$home/$EXERCISES_DIR_NAME"
-  run chown "$STUDENT_USER:$group" "$home/$EXERCISES_DIR_NAME"
+  run chown "$TARGET_USER:$group" "$home/$EXERCISES_DIR_NAME"
 
-  write_gtk_settings "$home" "$STUDENT_USER" "$group"
+  write_gtk_settings "$home" "$TARGET_USER" "$group"
 
   run install -d -m 0755 "$home/.config/autostart"
-  install_desktop_entry "$home/.config/autostart/edulab-first-login.desktop" "$STUDENT_USER" "$group" \
+  install_desktop_entry "$home/.config/autostart/edulab-first-login.desktop" "$TARGET_USER" "$group" \
     "$(desktop_entry_content "EduLab First Login" "Áp cấu hình EduLab khi đăng nhập" "/usr/local/bin/edulab-first-login.sh" "preferences-desktop" "Settings;")"
 
-  desktop_dir="$(desktop_dir_for_user "$STUDENT_USER" "$home")"
-  install_shortcuts_to_dir "$desktop_dir" "$STUDENT_USER" "$group"
-}
-
-configure_skel() {
-  log "Cấu hình /etc/skel để tài khoản tạo sau này cũng có shortcut."
-  run install -d -m 0755 "/etc/skel/$EXERCISES_DIR_NAME"
-  write_gtk_settings "/etc/skel" "root" "root"
-  run install -d -m 0755 /etc/skel/.config/autostart
-  install_desktop_entry "/etc/skel/.config/autostart/edulab-first-login.desktop" "root" "root" \
-    "$(desktop_entry_content "EduLab First Login" "Áp cấu hình EduLab khi đăng nhập" "/usr/local/bin/edulab-first-login.sh" "preferences-desktop" "Settings;")"
-  install_shortcuts_to_dir "/etc/skel/Desktop" "root" "root"
+  desktop_dir="$(desktop_dir_for_user "$TARGET_USER" "$home")"
+  install_shortcuts_to_dir "$desktop_dir" "$TARGET_USER" "$group"
 }
 
 configure_browser_policy() {
@@ -738,7 +704,7 @@ write_install_state() {
   # Ghi trạng thái tối thiểu để script gỡ biết user và lựa chọn app đã cài.
   run install -d -m 0755 /var/lib/edulab
   write_root_file "/var/lib/edulab/install-state.env" \
-    "STUDENT_USER=$STUDENT_USER
+    "TARGET_USER=$TARGET_USER
 BROWSER_CHOICE=$BROWSER_CHOICE
 INSTALL_ONLYOFFICE=$INSTALL_ONLYOFFICE
 LMS_CONFIGURED=$lms_configured"
@@ -747,6 +713,7 @@ LMS_CONFIGURED=$lms_configured"
 
 main() {
   parse_args "$@"
+  resolve_target_user
   validate_config
   require_root_for_changes
   setup_logging
@@ -758,11 +725,9 @@ main() {
   install_wallpaper_assets
   install_browser
   install_onlyoffice
-  create_student_user
   install_helper_scripts
   configure_input_method
-  configure_student_desktop
-  configure_skel
+  configure_target_desktop
   configure_browser_policy
   write_install_state
 
@@ -770,7 +735,7 @@ main() {
     run update-desktop-database /usr/share/applications
   fi
 
-  log "Hoàn tất. Hãy đăng xuất/đăng nhập vào tài khoản $STUDENT_USER để kiểm thử."
+  log "Hoàn tất. Hãy đăng xuất/đăng nhập lại tài khoản $TARGET_USER để kiểm thử."
   log "Log cài đặt: $LOG_FILE"
 }
 

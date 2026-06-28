@@ -61,7 +61,7 @@ main() {
 
   [[ -f "$UNINSTALL_SCRIPT" ]] || die "Không tìm thấy $UNINSTALL_SCRIPT."
 
-  local target_user="$USER"
+  local target_user="${SUDO_USER:-${USER:-}}"
 
   echo "EduLab Linux - gỡ cài đặt"
   echo "========================="
@@ -73,12 +73,12 @@ main() {
   confirm_uninstall
 
   if [[ "$(id -u)" -eq 0 ]]; then
-    bash "$UNINSTALL_SCRIPT" --student-user "$target_user"
+    bash "$UNINSTALL_SCRIPT" --target-user "$target_user"
   else
     echo
     echo "Đang yêu cầu quyền sudo. Hệ thống sẽ hỏi mật khẩu admin/sudo nếu cần."
     sudo -v || die "Không xác thực được quyền sudo."
-    sudo bash "$UNINSTALL_SCRIPT" --student-user "$target_user"
+    sudo bash "$UNINSTALL_SCRIPT" --target-user "$target_user"
   fi
 
   echo

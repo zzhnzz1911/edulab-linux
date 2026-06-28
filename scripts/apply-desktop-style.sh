@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Áp giao diện EduLab Windows 10-like Desktop cho tài khoản hiện tại.
-# Chạy script này trong chính tài khoản cần tùy biến, ví dụ tài khoản student.
+# Chạy script này trong chính tài khoản cần tùy biến, ví dụ tài khoản admin hiện tại.
 
 set -u
 
@@ -341,7 +341,7 @@ apply_xfce_style() {
   xfconf_set xfwm4 /general/workspace_count int "1"
   xfconf_set xfwm4 /general/use_compositing bool "true"
 
-  # Icon desktop lớn vừa đủ cho học sinh dễ nhìn.
+  # Icon desktop lớn vừa đủ cho người dùng dễ nhìn.
   xfconf_set xfce4-desktop /desktop-icons/icon-size uint "48"
   xfconf_set xfce4-desktop /desktop-icons/show-tooltips bool "true"
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Chạy sau khi clone image sang máy khác.
 # Script đổi hostname, tạo machine-id mới, dọn cache/lịch sử trong vùng an toàn.
-# Không xóa thư mục tài liệu, Desktop, Downloads hay dữ liệu học sinh.
+# Không xóa thư mục tài liệu, Desktop, Downloads hay dữ liệu người dùng.
 
 set -Eeuo pipefail
 shopt -s nullglob

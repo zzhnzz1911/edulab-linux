@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Trình cài một-cú-click cho EduLab Linux.
-# Mặc định cài đầy đủ cho tài khoản hiện tại trên một máy, không tạo user học sinh.
+# Mặc định cài đầy đủ cho tài khoản hiện tại trên một máy, không tạo thêm user phụ.
 
 set -Eeuo pipefail
 
@@ -11,8 +11,6 @@ INSTALL_PASSWORD_HASH_FILE="$PROJECT_DIR/.edulab-installer-password.sha256"
 STYLE_SCRIPT="$PROJECT_DIR/scripts/apply-desktop-style.sh"
 
 DEFAULT_BROWSER="chrome"
-DEFAULT_PASSWORD_PLACEHOLDER="EduLab@Local"
-
 pause_end() {
   echo
   read -r -p "Nhấn Enter để đóng cửa sổ..." _ || true
@@ -35,14 +33,6 @@ on_error() {
   exit 1
 }
 trap 'on_error "$LINENO"' ERR
-
-current_user_fullname() {
-  local user="$1"
-  local gecos
-
-  gecos="$(getent passwd "$user" </dev/null 2>/dev/null | cut -d: -f5 | cut -d, -f1 || true)"
-  printf '%s\n' "${gecos:-$user}"
-}
 
 sha256_text() {
   local text="$1"
@@ -156,15 +146,12 @@ main() {
 
   require_installer_password
 
-  local target_user="${USER:-}"
-  local target_fullname
+  local target_user="${SUDO_USER:-${USER:-}}"
 
   if [[ -z "$target_user" ]]; then
     target_user="$(id -un </dev/null 2>/dev/null || true)"
   fi
   [[ -n "$target_user" ]] || die "Không xác định được user hiện tại."
-
-  target_fullname="$(current_user_fullname "$target_user")"
 
   echo "Sẽ cài EduLab cho tài khoản Linux hiện tại: $target_user"
   echo "Bao gồm giao diện, font, bộ gõ tiếng Việt, ONLYOFFICE, trình duyệt và shortcut cơ bản."
@@ -175,19 +162,13 @@ main() {
   confirm_install
 
   if [[ "$(id -u </dev/null)" -eq 0 ]]; then
-    STUDENT_PASSWORD="$DEFAULT_PASSWORD_PLACEHOLDER" bash "$INSTALL_SCRIPT" \
-      --student-user "$target_user" \
-      --student-fullname "$target_fullname" \
-      --browser "$DEFAULT_BROWSER"
+    bash "$INSTALL_SCRIPT" --browser "$DEFAULT_BROWSER"
   else
     echo
     echo "Đang yêu cầu quyền sudo. Hệ thống sẽ hỏi mật khẩu admin/sudo nếu cần."
     sudo -v || die "Không xác thực được quyền sudo."
 
-    sudo env STUDENT_PASSWORD="$DEFAULT_PASSWORD_PLACEHOLDER" bash "$INSTALL_SCRIPT" \
-      --student-user "$target_user" \
-      --student-fullname "$target_fullname" \
-      --browser "$DEFAULT_BROWSER"
+    sudo bash "$INSTALL_SCRIPT" --browser "$DEFAULT_BROWSER"
   fi
 
   if [[ "$(id -u </dev/null)" -ne 0 && -f "$STYLE_SCRIPT" ]]; then

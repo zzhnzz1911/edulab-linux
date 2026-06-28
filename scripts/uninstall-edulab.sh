@@ -22,7 +22,7 @@ Cách dùng:
   sudo bash scripts/uninstall-edulab.sh [tùy chọn]
 
 Tùy chọn:
-  --student-user USER     Tài khoản cần gỡ shortcut/cấu hình EduLab. Mặc định: user gọi sudo
+  --target-user USER      Tài khoản cần gỡ shortcut/cấu hình EduLab. Mặc định: user gọi sudo
   --remove-apps           Gỡ thêm app đã cài theo trạng thái EduLab nếu xác định được
   --yes                   Không hỏi xác nhận, dùng cho tự động hóa
   --dry-run               Chỉ in thao tác, không thay đổi hệ thống
@@ -52,9 +52,13 @@ run() {
 parse_args() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --student-user)
+      --target-user|--student-user)
         TARGET_USER="${2:-}"
         shift 2
+        ;;
+      --target-user=*|--student-user=*)
+        TARGET_USER="${1#*=}"
+        shift
         ;;
       --remove-apps)
         REMOVE_APPS=1
@@ -94,8 +98,8 @@ require_root_for_changes() {
 }
 
 validate_config() {
-  [[ -n "$TARGET_USER" ]] || die "Không xác định được user cần gỡ. Hãy truyền --student-user USER."
-  [[ "$TARGET_USER" != "root" ]] || die "Không gỡ cấu hình Desktop cho root. Hãy truyền --student-user USER thật."
+  [[ -n "$TARGET_USER" ]] || die "Không xác định được user cần gỡ. Hãy truyền --target-user USER."
+  [[ "$TARGET_USER" != "root" ]] || die "Không gỡ cấu hình Desktop cho root. Hãy truyền --target-user USER thật."
   [[ "$TARGET_USER" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || \
     die "Tên tài khoản '$TARGET_USER' không hợp lệ."
 
@@ -202,7 +206,7 @@ remove_user_shortcuts() {
 }
 
 remove_skel_shortcuts() {
-  log "Gỡ shortcut EduLab trong /etc/skel cho user tạo sau này."
+  log "Gỡ shortcut EduLab trong /etc/skel nếu còn sót từ bản cũ."
   remove_file "/etc/skel/Desktop/ONLYOFFICE.desktop"
   remove_file "/etc/skel/Desktop/Trinh-duyet.desktop"
   remove_file "/etc/skel/Desktop/Tep.desktop"

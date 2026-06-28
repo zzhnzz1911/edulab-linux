@@ -8,6 +8,8 @@ Giao diện mặc định dùng một kiểu duy nhất: **EduLab Windows 10-lik
 
 Bộ cài dùng theme GTK/Xfwm và icon Windows 10 từ B00merang, kèm wallpaper `assets/windows-10-blue-gradient.jpg` lấy từ file bạn đặt trong `downloads/`. Khi triển khai thương mại hoặc bàn giao cho khách hàng, hãy kiểm tra license/nhận diện thương hiệu theo chính sách của bạn.
 
+Bộ cài không tạo thêm user `student`. Mặc định script cấu hình trực tiếp tài khoản Linux hiện tại, thường là user admin đang chạy `sudo`.
+
 ## Cài đặt
 
 Mở Terminal trên máy Linux và chạy:
@@ -54,3 +56,4 @@ Trình gỡ chỉ gỡ cấu hình/shortcut EduLab, không xóa `Documents`, `Do
 - Nếu file `.desktop` hỏi quyền chạy, chọn **Allow Launching**, **Trust and Launch** hoặc tùy chọn tương đương.
 - Nếu cài xong giao diện chưa đổi ngay, hãy đăng xuất rồi đăng nhập lại. Có thể chạy lại `bash scripts/apply-desktop-style.sh` để áp lại giao diện.
 - Theme/icon Windows 10 được tải lúc cài từ GitHub. Máy cần có Internet trong lần cài đầu.
+- Nếu muốn chạy thử bằng Terminal thay vì double-click, dùng `sudo bash scripts/install-edulab.sh --browser chrome` trong thư mục project.
