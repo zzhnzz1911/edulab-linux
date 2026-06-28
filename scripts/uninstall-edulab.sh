@@ -197,6 +197,7 @@ remove_user_shortcuts() {
   remove_file "$home/.config/edulab/desktop-style-v15.done"
   remove_file "$home/.config/edulab/desktop-style-v16.done"
   remove_file "$home/.config/edulab/desktop-style-v17.done"
+  remove_file "$home/.config/edulab/desktop-style-v18.done"
   remove_file "$home/.config/autostart/edulab-taskbar-search.desktop"
   remove_file "$home/.config/edulab/icons/input-eng.svg"
   remove_file "$home/.local/share/backgrounds/edulab/windows-10-blue-gradient.jpg"

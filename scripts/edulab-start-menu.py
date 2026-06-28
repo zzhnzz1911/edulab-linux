@@ -702,8 +702,10 @@ class TaskbarSearch(Gtk.Window):
     self.set_default_size(TASKBAR_SEARCH_WIDTH, TASKBAR_HEIGHT)
     self.set_size_request(TASKBAR_SEARCH_WIDTH, TASKBAR_HEIGHT)
     self.connect("button-press-event", self.on_button_press)
+    self.connect("key-press-event", self.on_window_key_press)
     self.start_menu = None
     self.keyboard_grabbed = False
+    self.keyboard_grab_seat = None
     self.suppress_changed = False
 
     root = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
@@ -752,6 +754,26 @@ class TaskbarSearch(Gtk.Window):
     if gdk_window is None:
       return False
     try:
+      display = Gdk.Display.get_default()
+      if display and hasattr(display, "get_default_seat"):
+        seat = display.get_default_seat()
+        status = seat.grab(
+          gdk_window,
+          Gdk.SeatCapabilities.KEYBOARD,
+          False,
+          None,
+          None,
+          None,
+          None,
+        )
+        if status == Gdk.GrabStatus.SUCCESS:
+          self.keyboard_grabbed = True
+          self.keyboard_grab_seat = seat
+          return False
+    except Exception:
+      self.keyboard_grab_seat = None
+
+    try:
       status = Gdk.keyboard_grab(gdk_window, True, Gdk.CURRENT_TIME)
       self.keyboard_grabbed = status == Gdk.GrabStatus.SUCCESS
     except Exception:
@@ -762,10 +784,14 @@ class TaskbarSearch(Gtk.Window):
     if not self.keyboard_grabbed:
       return
     try:
-      Gdk.keyboard_ungrab(Gdk.CURRENT_TIME)
+      if self.keyboard_grab_seat is not None:
+        self.keyboard_grab_seat.ungrab()
+      else:
+        Gdk.keyboard_ungrab(Gdk.CURRENT_TIME)
     except Exception:
       pass
     self.keyboard_grabbed = False
+    self.keyboard_grab_seat = None
 
   def ensure_start_menu(self):
     query = self.entry.get_text()
@@ -831,6 +857,43 @@ class TaskbarSearch(Gtk.Window):
       self.entry.set_text("")
       self.suppress_changed = False
       self.hide_start_menu()
+      return True
+    return False
+
+  def on_window_key_press(self, _widget, event):
+    if self.entry.has_focus():
+      return False
+
+    if event.keyval == Gdk.KEY_Escape:
+      return self.on_key_press(_widget, event)
+    if event.keyval in {Gdk.KEY_Return, Gdk.KEY_KP_Enter}:
+      return self.on_activate(self.entry)
+    if event.keyval == Gdk.KEY_BackSpace:
+      text = self.entry.get_text()
+      position = self.entry.get_position()
+      if position > 0:
+        self.entry.set_text(text[: position - 1] + text[position:])
+        self.entry.set_position(position - 1)
+      return True
+    if event.keyval == Gdk.KEY_Delete:
+      text = self.entry.get_text()
+      position = self.entry.get_position()
+      if position < len(text):
+        self.entry.set_text(text[:position] + text[position + 1:])
+        self.entry.set_position(position)
+      return True
+    if event.keyval == Gdk.KEY_Left:
+      self.entry.set_position(max(0, self.entry.get_position() - 1))
+      return True
+    if event.keyval == Gdk.KEY_Right:
+      self.entry.set_position(min(len(self.entry.get_text()), self.entry.get_position() + 1))
+      return True
+
+    typed = event.string or ""
+    if typed and typed.isprintable() and not (event.state & Gdk.ModifierType.CONTROL_MASK):
+      position = self.entry.get_position()
+      self.entry.insert_text(typed, position)
+      self.entry.set_position(position + len(typed))
       return True
     return False
 
