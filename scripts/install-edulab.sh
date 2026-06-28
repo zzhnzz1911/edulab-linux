@@ -412,7 +412,7 @@ install_helper_scripts() {
 # Chạy một lần khi user đăng nhập để áp theme và bộ gõ.
 set -u
 
-MARKER="$HOME/.config/edulab/desktop-style-v11.done"
+MARKER="$HOME/.config/edulab/desktop-style-v12.done"
 mkdir -p "$HOME/.config/edulab"
 if [[ -f "$MARKER" ]]; then
   exit 0
@@ -524,11 +524,7 @@ exec xdg-open "${1:-about:blank}"
     log "CẢNH BÁO: Không tìm thấy scripts/edulab-input-menu.py, bỏ qua menu bộ gõ tùy biến."
   fi
 
-  if [[ -f "$SCRIPT_DIR/edulab-search.py" ]]; then
-    run install -m 0755 "$SCRIPT_DIR/edulab-search.py" /usr/local/bin/edulab-search
-  else
-    log "CẢNH BÁO: Không tìm thấy scripts/edulab-search.py, bỏ qua menu tìm kiếm tùy biến."
-  fi
+  run rm -f /usr/local/bin/edulab-search
 }
 
 configure_input_method() {

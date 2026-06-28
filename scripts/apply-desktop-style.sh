@@ -124,18 +124,6 @@ input_menu_command() {
   fi
 }
 
-search_menu_command() {
-  if command -v edulab-search >/dev/null 2>&1; then
-    printf '%s\n' "edulab-search"
-  elif [[ -x "$SCRIPT_DIR/edulab-search.py" ]]; then
-    printf '%s\n' "$SCRIPT_DIR/edulab-search.py"
-  elif command -v xfce4-appfinder >/dev/null 2>&1; then
-    printf '%s\n' "xfce4-appfinder"
-  else
-    printf '%s\n' "edulab-start-menu"
-  fi
-}
-
 browser_icon_name() {
   if command -v google-chrome-stable >/dev/null 2>&1 || command -v google-chrome >/dev/null 2>&1; then
     printf '%s\n' "google-chrome"
@@ -171,6 +159,33 @@ backup_xfce_panel() {
   stamp="$(date '+%Y%m%d-%H%M%S')"
   mkdir -p "$dst_dir"
   cp "$src" "$dst_dir/xfce4-panel.$stamp.xml" 2>/dev/null || true
+}
+
+configure_taskbar_search_autostart() {
+  local autostart_dir="$HOME/.config/autostart"
+
+  mkdir -p "$autostart_dir"
+  cat > "$autostart_dir/edulab-taskbar-search.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=EduLab Taskbar Search
+Exec=edulab-start-menu --taskbar-search
+Terminal=false
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
+OnlyShowIn=XFCE;
+EOF
+}
+
+start_taskbar_search() {
+  [[ -n "${DISPLAY:-}" ]] || return 0
+  command -v edulab-start-menu >/dev/null 2>&1 || return 0
+
+  if command -v pkill >/dev/null 2>&1; then
+    pkill -u "$(id -un)" -f "edulab-start-menu --taskbar-search" >/dev/null 2>&1 || true
+    sleep 0.2
+  fi
+  nohup edulab-start-menu --taskbar-search >/dev/null 2>&1 &
 }
 
 gsettings_set_if_exists() {
@@ -267,6 +282,14 @@ EOF
 
   # Taskbar tối, phẳng và dùng accent xanh kiểu Windows 10.
   cat > "$HOME/.config/gtk-3.0/gtk.css" <<'EOF'
+label {
+  color: #202020;
+}
+
+label:disabled {
+  color: #707070;
+}
+
 .xfce4-panel {
   background-color: #101010;
   color: #f8fafc;
@@ -293,6 +316,7 @@ EOF
   background-color: rgba(0, 120, 215, 0.34);
 }
 
+.xfce4-panel label,
 .xfce4-panel button label {
   color: #f8fafc;
 }
@@ -316,7 +340,8 @@ EOF
 menu,
 .menu,
 popover,
-.popover {
+.popover,
+window.popup {
   background-color: #f4f4f4;
   color: #202020;
 }
@@ -324,19 +349,23 @@ popover,
 menu label,
 menuitem label,
 popover label,
-.popover label {
+.popover label,
+window.popup label {
   color: #202020;
 }
 
 menuitem:disabled label,
 menuitem label:disabled,
 popover label:disabled,
-.popover label:disabled {
+.popover label:disabled,
+window.popup label:disabled {
   color: #707070;
 }
 
 menuitem:hover,
-menuitem:hover label {
+menuitem:hover label,
+menuitem:selected,
+menuitem:selected label {
   background-color: #0078d7;
   color: #ffffff;
 }
@@ -380,13 +409,12 @@ apply_xfce_taskbar() {
   local browser_icon
   local input_icon
   local input_command
-  local search_command
+  local search_label="Ask me anything                 "
 
   if ! command -v edulab-start-menu >/dev/null 2>&1; then
     start_command="xfce4-popup-whiskermenu"
   fi
   browser_icon="$(browser_icon_name)"
-  search_command="$(search_menu_command)"
 
   if create_panel_launcher "$id" "start.desktop" "Start" "$start_command" "start-here" "Utility;"; then
     ids+=("$id")
@@ -405,7 +433,7 @@ apply_xfce_taskbar() {
     id=$((id + 1))
   fi
 
-  if create_panel_launcher "$id" "search.desktop" "Ask me anything" "$search_command" "system-search" "Utility;" "true"; then
+  if create_panel_launcher "$id" "search.desktop" "$search_label" "$start_command" "system-search" "Utility;" "true"; then
     ids+=("$id")
     id=$((id + 1))
   fi
@@ -565,6 +593,7 @@ apply_xfce_style() {
   xfconf_set xfce4-keyboard-shortcuts "/commands/custom/<Super>i" string "edulab-open-settings"
 
   apply_xfce_taskbar
+  configure_taskbar_search_autostart
   apply_file_explorer_style
   apply_input_switcher_style
   trust_desktop_launchers
@@ -574,6 +603,7 @@ apply_xfce_style() {
   if command -v xfce4-panel >/dev/null 2>&1; then
     xfce4-panel -r >/dev/null 2>&1 || true
   fi
+  start_taskbar_search
 }
 
 apply_cinnamon_style() {

@@ -4,7 +4,7 @@ Bộ cài nhanh cho máy Linux desktop dùng trong môi trường học tập IC
 
 Khuyến nghị dùng **Linux Mint Xfce 64-bit** hoặc **Xubuntu 64-bit**. Máy cần có Internet khi cài.
 
-Giao diện mặc định dùng một kiểu duy nhất: **EduLab Windows 10-like Desktop**. Bố cục ưu tiên giống Windows 10 nhất có thể trên Linux Mint/Xubuntu Xfce: taskbar dưới màu đen, nút Start bên trái, ô `Ask me anything` trên taskbar mở panel tìm kiếm app, menu Start tùy biến có app list và tile ghim, File Explorer và trình duyệt được ghim trên taskbar, app icon-only, tray/power/network/volume/ENG/clock/notification bên phải, icon Trash trên Desktop, shortcut File Explorer/Settings và LMS nếu có cấu hình.
+Giao diện mặc định dùng một kiểu duy nhất: **EduLab Windows 10-like Desktop**. Bố cục ưu tiên giống Windows 10 nhất có thể trên Linux Mint/Xubuntu Xfce: taskbar dưới màu đen, nút Start bên trái, ô `Ask me anything` nhập trực tiếp trên taskbar và lọc app ngay trong hộp Start, menu Start tùy biến có app list và tile ghim, File Explorer và trình duyệt được ghim trên taskbar, app icon-only, tray/power/network/volume/ENG/clock/notification bên phải, icon Trash trên Desktop, shortcut File Explorer/Settings và LMS nếu có cấu hình.
 
 Bộ gõ được cấu hình để đổi US/Vietnamese bằng `Super+Space`, hiện nút `ENG` trên taskbar thay vì icon lá cờ. Bấm nút `ENG` sẽ mở menu chọn bộ gõ riêng ở góc phải phía trên taskbar.
 
