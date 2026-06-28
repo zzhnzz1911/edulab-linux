@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import os
+import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -13,6 +15,7 @@ from gi.repository import Gdk, Gtk, Pango
 WIDTH = 650
 HEIGHT = 520
 TASKBAR_HEIGHT = 40
+DESKTOP_FIELD_CODE_RE = re.compile(r"%[fFuUdDnNickvm]")
 
 
 CSS = b"""
@@ -49,6 +52,14 @@ window {
   font-weight: 600;
   margin-top: 8px;
   margin-bottom: 4px;
+}
+
+.search-entry {
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 0;
+  padding: 6px 8px;
+  background: #2d2d2d;
+  color: #ffffff;
 }
 
 .app-button {
@@ -121,7 +132,10 @@ def launch(command):
 
 
 def icon(name, size):
-  image = Gtk.Image.new_from_icon_name(name, Gtk.IconSize.DIALOG)
+  if name and os.path.isabs(name) and os.path.exists(name):
+    image = Gtk.Image.new_from_file(name)
+  else:
+    image = Gtk.Image.new_from_icon_name(name, Gtk.IconSize.DIALOG)
   image.set_pixel_size(size)
   return image
 
@@ -137,6 +151,95 @@ def add_class(widget, class_name):
   widget.get_style_context().add_class(class_name)
 
 
+def clean_desktop_exec(exec_line):
+  try:
+    parts = shlex.split(exec_line)
+  except ValueError:
+    return None
+
+  cleaned = []
+  for part in parts:
+    part = DESKTOP_FIELD_CODE_RE.sub("", part).strip()
+    if part:
+      cleaned.append(part)
+  return cleaned or None
+
+
+def read_desktop_entry(path):
+  data = {}
+  in_entry = False
+
+  try:
+    with open(path, "r", encoding="utf-8", errors="ignore") as handle:
+      for raw_line in handle:
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+          continue
+        if line == "[Desktop Entry]":
+          in_entry = True
+          continue
+        if line.startswith("[") and in_entry:
+          break
+        if not in_entry or "=" not in line:
+          continue
+
+        key, value = line.split("=", 1)
+        if key in {"Name", "Comment", "Exec", "Icon", "NoDisplay", "Hidden", "Terminal", "Categories"}:
+          data[key] = value
+  except OSError:
+    return None
+
+  if data.get("Hidden", "").lower() == "true" or data.get("NoDisplay", "").lower() == "true":
+    return None
+  if data.get("Terminal", "").lower() == "true":
+    return None
+
+  name = data.get("Name", "").strip()
+  command = clean_desktop_exec(data.get("Exec", ""))
+  if not name or not command:
+    return None
+
+  return {
+    "name": name,
+    "icon": data.get("Icon", "application-x-executable") or "application-x-executable",
+    "command": command,
+    "search": " ".join(
+      [
+        name,
+        data.get("Comment", ""),
+        data.get("Exec", ""),
+        data.get("Categories", ""),
+      ]
+    ).lower(),
+  }
+
+
+def scan_desktop_apps():
+  apps = []
+  seen = set()
+  directories = [
+    "/usr/share/applications",
+    os.path.expanduser("~/.local/share/applications"),
+  ]
+
+  for directory in directories:
+    if not os.path.isdir(directory):
+      continue
+    for filename in sorted(os.listdir(directory)):
+      if not filename.endswith(".desktop"):
+        continue
+      entry = read_desktop_entry(os.path.join(directory, filename))
+      if not entry:
+        continue
+      key = entry["name"].lower()
+      if key in seen:
+        continue
+      seen.add(key)
+      apps.append(entry)
+
+  return apps
+
+
 class StartMenu(Gtk.Window):
   def __init__(self):
     Gtk.Window.__init__(self, type=Gtk.WindowType.TOPLEVEL)
@@ -150,6 +253,11 @@ class StartMenu(Gtk.Window):
     self.set_size_request(WIDTH, HEIGHT)
     self.connect("focus-out-event", lambda *_: Gtk.main_quit())
     self.connect("key-press-event", self.on_key_press)
+
+    self.app_entries = self.build_app_entries()
+    self.current_results = []
+    self.search_entry = None
+    self.apps_list = None
 
     css_provider = Gtk.CssProvider()
     css_provider.load_from_data(CSS)
@@ -221,6 +329,9 @@ class StartMenu(Gtk.Window):
     button.connect("clicked", lambda *_: launch(command))
     return button
 
+  def app_button_from_entry(self, entry, suggested=False):
+    return self.app_button(entry["name"], entry["icon"], entry["command"], suggested)
+
   def section_label(self, text):
     item = label(text)
     add_class(item, "section-title")
@@ -231,28 +342,137 @@ class StartMenu(Gtk.Window):
     apps.set_size_request(230, HEIGHT)
     apps.set_border_width(16)
 
-    apps.pack_start(self.section_label("Recently added"), False, False, 0)
-    apps.pack_start(self.app_button("ONLYOFFICE", "onlyoffice-desktopeditors", ["desktopeditors"]), False, False, 0)
+    self.search_entry = Gtk.SearchEntry()
+    self.search_entry.set_placeholder_text("Type to search")
+    self.search_entry.connect("search-changed", self.on_search_changed)
+    self.search_entry.connect("activate", self.on_search_activate)
+    add_class(self.search_entry, "search-entry")
+    apps.pack_start(self.search_entry, False, False, 0)
 
-    apps.pack_start(self.section_label("Most used"), False, False, 0)
-    apps.pack_start(self.app_button("Browser", "web-browser", self.browser_command()), False, False, 0)
-    apps.pack_start(self.app_button("Settings", "preferences-system", self.settings_command()), False, False, 0)
-    apps.pack_start(self.app_button("File Explorer", "system-file-manager", ["edulab-open-files"]), False, False, 0)
+    scroller = Gtk.ScrolledWindow()
+    scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+    scroller.set_shadow_type(Gtk.ShadowType.NONE)
+    self.apps_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+    scroller.add(self.apps_list)
+    apps.pack_start(scroller, True, True, 8)
+
+    self.populate_apps("")
+    return apps
+
+  def build_app_entries(self):
+    entries = [
+      {
+        "name": "Browser",
+        "icon": "web-browser",
+        "command": self.browser_command(),
+        "search": "browser web internet chrome chromium firefox edge",
+      },
+      {
+        "name": "Settings",
+        "icon": "preferences-system",
+        "command": self.settings_command(),
+        "search": "settings control panel preferences system",
+      },
+      {
+        "name": "File Explorer",
+        "icon": "system-file-manager",
+        "command": ["edulab-open-files"],
+        "search": "file explorer files folder thunar home",
+      },
+      {
+        "name": "ONLYOFFICE",
+        "icon": "onlyoffice-desktopeditors",
+        "command": ["desktopeditors"],
+        "search": "onlyoffice office word writer spreadsheet presentation",
+      },
+      {
+        "name": "Keyboard settings",
+        "icon": "preferences-desktop-keyboard",
+        "command": self.keyboard_command(),
+        "search": "keyboard input method language unikey vietnamese",
+      },
+      {
+        "name": "All apps",
+        "icon": "view-app-grid-symbolic",
+        "command": self.all_apps_command(),
+        "search": "all apps applications appfinder",
+      },
+    ]
+
     terminal = first_command([["xfce4-terminal"], ["gnome-terminal"], ["x-terminal-emulator"]])
     if terminal:
-      apps.pack_start(self.app_button("Terminal", "utilities-terminal", terminal), False, False, 0)
+      entries.insert(
+        4,
+        {
+          "name": "Terminal",
+          "icon": "utilities-terminal",
+          "command": terminal,
+          "search": "terminal console shell command",
+        },
+      )
 
-    apps.pack_start(self.section_label("Suggested"), False, False, 0)
-    apps.pack_start(
-      self.app_button("Keyboard settings", "preferences-desktop-keyboard", self.keyboard_command(), True),
-      False,
-      False,
-      0,
-    )
+    seen = {entry["name"].lower() for entry in entries}
+    for entry in scan_desktop_apps():
+      if entry["name"].lower() in seen:
+        continue
+      seen.add(entry["name"].lower())
+      entries.append(entry)
 
-    apps.pack_start(Gtk.Box(), True, True, 0)
-    apps.pack_start(self.app_button("All apps", "view-app-grid-symbolic", self.all_apps_command()), False, False, 0)
-    return apps
+    return entries
+
+  def clear_apps_list(self):
+    for child in self.apps_list.get_children():
+      self.apps_list.remove(child)
+
+  def find_entry(self, name):
+    for entry in self.app_entries:
+      if entry["name"] == name:
+        return entry
+    return None
+
+  def pack_entry(self, entry, suggested=False):
+    if entry:
+      self.apps_list.pack_start(self.app_button_from_entry(entry, suggested), False, False, 0)
+
+  def populate_apps(self, query):
+    query = query.strip().lower()
+    self.clear_apps_list()
+
+    if query:
+      results = [
+        entry
+        for entry in self.app_entries
+        if query in entry["name"].lower() or query in entry["search"]
+      ]
+      self.current_results = results
+      self.apps_list.pack_start(self.section_label("Search results"), False, False, 0)
+      if results:
+        for entry in results[:16]:
+          self.pack_entry(entry)
+      else:
+        self.apps_list.pack_start(label("No results"), False, False, 8)
+      self.apps_list.show_all()
+      return
+
+    self.current_results = []
+    self.apps_list.pack_start(self.section_label("Recently added"), False, False, 0)
+    self.pack_entry(self.find_entry("ONLYOFFICE"))
+
+    self.apps_list.pack_start(self.section_label("Most used"), False, False, 0)
+    for name in ["Browser", "Settings", "File Explorer", "Terminal"]:
+      self.pack_entry(self.find_entry(name))
+
+    self.apps_list.pack_start(self.section_label("Suggested"), False, False, 0)
+    self.pack_entry(self.find_entry("Keyboard settings"), True)
+    self.pack_entry(self.find_entry("All apps"))
+    self.apps_list.show_all()
+
+  def on_search_changed(self, entry):
+    self.populate_apps(entry.get_text())
+
+  def on_search_activate(self, _entry):
+    if self.current_results:
+      launch(self.current_results[0]["command"])
 
   def tile(self, name, icon_name, command, css_class="tile", width=120, height=90):
     button = Gtk.Button()
@@ -348,6 +568,9 @@ def main():
     return 1
   window = StartMenu()
   window.show_all()
+  window.present()
+  if window.search_entry:
+    window.search_entry.grab_focus()
   Gtk.main()
   return 0
 

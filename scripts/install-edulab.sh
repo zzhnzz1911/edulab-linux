@@ -413,7 +413,7 @@ install_helper_scripts() {
 # Chạy một lần khi user đăng nhập để áp theme và bộ gõ.
 set -u
 
-MARKER="$HOME/.config/edulab/desktop-style-v6.done"
+MARKER="$HOME/.config/edulab/desktop-style-v7.done"
 mkdir -p "$HOME/.config/edulab"
 if [[ -f "$MARKER" ]]; then
   exit 0
@@ -509,7 +509,8 @@ case "${engine,,}" in
 esac
 
 printf "<txt>%s</txt>\n" "$code"
-printf "<tool>Super+Space đổi US/Vietnamese</tool>\n"
+printf "<txtclick>/usr/local/bin/edulab-input-menu</txtclick>\n"
+printf "<tool>Click hoặc Super+Space đổi US/Vietnamese</tool>\n"
 '
 
   write_root_file "/usr/local/bin/edulab-first-login.sh" "$first_login"
@@ -537,6 +538,12 @@ printf "<tool>Super+Space đổi US/Vietnamese</tool>\n"
     run install -m 0755 "$SCRIPT_DIR/edulab-start-menu.py" /usr/local/bin/edulab-start-menu
   else
     log "CẢNH BÁO: Không tìm thấy scripts/edulab-start-menu.py, bỏ qua Start menu tùy biến."
+  fi
+
+  if [[ -f "$SCRIPT_DIR/edulab-input-menu.py" ]]; then
+    run install -m 0755 "$SCRIPT_DIR/edulab-input-menu.py" /usr/local/bin/edulab-input-menu
+  else
+    log "CẢNH BÁO: Không tìm thấy scripts/edulab-input-menu.py, bỏ qua menu bộ gõ tùy biến."
   fi
 }
 

@@ -186,6 +186,7 @@ remove_user_shortcuts() {
   remove_file "$home/.config/edulab/desktop-style-v4.done"
   remove_file "$home/.config/edulab/desktop-style-v5.done"
   remove_file "$home/.config/edulab/desktop-style-v6.done"
+  remove_file "$home/.config/edulab/desktop-style-v7.done"
   remove_file "$home/.local/share/backgrounds/edulab/windows-10-blue-gradient.jpg"
   remove_file "$home/.config/xfce4/panel/launcher-101/file-explorer.desktop"
   remove_file "$home/.config/xfce4/panel/launcher-102/file-explorer.desktop"
@@ -215,6 +216,7 @@ remove_system_helpers() {
   remove_file "/usr/local/bin/edulab-language-indicator"
   remove_file "/usr/local/bin/edulab-apply-desktop-style"
   remove_file "/usr/local/bin/edulab-start-menu"
+  remove_file "/usr/local/bin/edulab-input-menu"
   remove_file "/etc/profile.d/edulab-input-method.sh"
   remove_file "/usr/share/backgrounds/edulab/windows-10-blue-gradient.jpg"
 

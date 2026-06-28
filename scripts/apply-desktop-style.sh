@@ -326,10 +326,13 @@ apply_xfce_taskbar() {
     if panel_plugin_available "$plugin"; then
       set_panel_plugin_type "$id" "$plugin"
       if [[ "$plugin" == "genmon" ]]; then
-        xfconf_set xfce4-panel "/plugins/plugin-$id/command" string "edulab-language-indicator"
-        xfconf_set xfce4-panel "/plugins/plugin-$id/period" uint "1"
+        xfconf-query -c xfce4-panel -p "/plugins/plugin-$id/period" -r >/dev/null 2>&1 || true
+        xfconf_set xfce4-panel "/plugins/plugin-$id/command" string "/usr/local/bin/edulab-language-indicator"
+        xfconf_set xfce4-panel "/plugins/plugin-$id/update-period" int "1"
         xfconf_set xfce4-panel "/plugins/plugin-$id/use-label" bool "false"
         xfconf_set xfce4-panel "/plugins/plugin-$id/text" string ""
+        xfconf_set xfce4-panel "/plugins/plugin-$id/enable-single-row" bool "true"
+        xfconf_set xfce4-panel "/plugins/plugin-$id/font" string "$FONT_NAME"
       fi
       if [[ "$plugin" == "clock" ]]; then
         xfconf_set xfce4-panel "/plugins/plugin-$id/mode" uint "2"
@@ -400,6 +403,12 @@ apply_input_switcher_style() {
   gsettings_set_key_if_exists org.freedesktop.ibus.general use-system-keyboard-layout "false"
   gsettings_set_key_if_exists org.freedesktop.ibus.general.hotkey triggers "['<Super>space']"
   gsettings_set_key_if_exists org.freedesktop.ibus.general.hotkey triggers-backward "['<Shift><Super>space']"
+  gsettings_set_key_if_exists org.freedesktop.ibus.panel show-icon-on-systray "false"
+  gsettings_set_key_if_exists org.freedesktop.ibus.panel show-im-name "false"
+
+  if command -v ibus >/dev/null 2>&1; then
+    ibus restart >/dev/null 2>&1 || true
+  fi
 }
 
 apply_xfce_style() {
