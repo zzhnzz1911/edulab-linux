@@ -7,13 +7,14 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 PROJECT_DIR="$(cd -- "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
 INSTALL_SCRIPT="$PROJECT_DIR/scripts/install-edulab.sh"
+INSTALL_PASSWORD_HASH_FILE="$PROJECT_DIR/.edulab-installer-password.sha256"
 
 DEFAULT_BROWSER="chrome"
 DEFAULT_PASSWORD_PLACEHOLDER="EduLab@Local"
 
 pause_end() {
   echo
-  read -r -p "Nhấn Enter để đóng cửa sổ..." _
+  read -r -p "Nhấn Enter để đóng cửa sổ..." _ || true
 }
 
 die() {
@@ -35,9 +36,88 @@ on_error() {
 trap 'on_error "$LINENO"' ERR
 
 current_user_fullname() {
+  local user="$1"
   local gecos
-  gecos="$(getent passwd "$USER" | cut -d: -f5 | cut -d, -f1 || true)"
-  printf '%s\n' "${gecos:-$USER}"
+
+  gecos="$(getent passwd "$user" </dev/null 2>/dev/null | cut -d: -f5 | cut -d, -f1 || true)"
+  printf '%s\n' "${gecos:-$user}"
+}
+
+sha256_text() {
+  local text="$1"
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    printf '%s' "$text" | sha256sum | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    printf '%s' "$text" | shasum -a 256 | awk '{print $1}'
+  else
+    die "Không tìm thấy sha256sum hoặc shasum để kiểm tra mã cài đặt."
+  fi
+}
+
+configured_install_password_hash() {
+  local hash="${EDULAB_INSTALL_PASSWORD_SHA256:-}"
+
+  if [[ -z "$hash" && -f "$INSTALL_PASSWORD_HASH_FILE" ]]; then
+    hash="$(awk 'NF {print $1; exit}' "$INSTALL_PASSWORD_HASH_FILE")"
+  fi
+
+  printf '%s\n' "$hash"
+}
+
+read_secret() {
+  local prompt="$1"
+  local output_var="$2"
+  local value=""
+
+  if [[ -t 0 ]]; then
+    printf '%s' "$prompt"
+    stty -echo 2>/dev/null || true
+  fi
+
+  if ! IFS= read -r value; then
+    value=""
+  fi
+
+  if [[ -t 0 ]]; then
+    stty echo 2>/dev/null || true
+  fi
+
+  printf -v "$output_var" '%s' "$value"
+}
+
+require_installer_password() {
+  local expected_hash
+  local actual_hash
+  local password
+  local attempt
+
+  expected_hash="$(configured_install_password_hash)"
+  [[ -n "$expected_hash" ]] || return 0
+
+  [[ "$expected_hash" =~ ^[0-9a-fA-F]{64}$ ]] || \
+    die "Hash mã cài đặt không hợp lệ trong $INSTALL_PASSWORD_HASH_FILE."
+
+  echo "Bộ cài này yêu cầu mã cài đặt EduLab."
+  echo
+
+  for attempt in 1 2 3; do
+    read_secret "Nhập mã cài đặt EduLab: " password
+    echo
+
+    actual_hash="$(sha256_text "$password")"
+    password=""
+
+    if [[ "${actual_hash,,}" == "${expected_hash,,}" ]]; then
+      echo "Mã cài đặt hợp lệ."
+      echo
+      return 0
+    fi
+
+    echo "Mã cài đặt không đúng."
+  done
+
+  die "Nhập sai mã cài đặt quá 3 lần."
 }
 
 confirm_install() {
@@ -46,7 +126,9 @@ confirm_install() {
   echo "Script sẽ thay đổi cấu hình hệ thống và cài thêm phần mềm bằng apt."
   echo "Bạn có thể hủy ở bước này nếu chưa muốn cài."
   echo
-  read -r -p "Bạn có chấp nhận cài đặt EduLab trên máy này không? [y/N]: " answer
+  if ! read -r -p "Bạn có chấp nhận cài đặt EduLab trên máy này không? [y/N]: " answer; then
+    answer=""
+  fi
 
   case "${answer,,}" in
     y|yes|c|co|có)
@@ -61,18 +143,28 @@ confirm_install() {
 }
 
 main() {
-  clear || true
+  if [[ -t 0 && -t 1 ]]; then
+    clear || true
+  fi
 
   [[ -f "$INSTALL_SCRIPT" ]] || die "Không tìm thấy $INSTALL_SCRIPT."
-
-  local target_user="$USER"
-  local target_fullname
-
-  target_fullname="$(current_user_fullname)"
 
   echo "EduLab Linux - cài nhanh"
   echo "========================"
   echo
+
+  require_installer_password
+
+  local target_user="${USER:-}"
+  local target_fullname
+
+  if [[ -z "$target_user" ]]; then
+    target_user="$(id -un </dev/null 2>/dev/null || true)"
+  fi
+  [[ -n "$target_user" ]] || die "Không xác định được user hiện tại."
+
+  target_fullname="$(current_user_fullname "$target_user")"
+
   echo "Mặc định sẽ cài đầy đủ cho tài khoản hiện tại: $target_user"
   echo "Không tạo user học sinh, không hỏi LMS, không tạo shortcut LMS."
   echo "Sẽ cài giao diện, font, bộ gõ tiếng Việt, ONLYOFFICE, trình duyệt và shortcut cơ bản."
@@ -82,7 +174,7 @@ main() {
 
   confirm_install
 
-  if [[ "$(id -u)" -eq 0 ]]; then
+  if [[ "$(id -u </dev/null)" -eq 0 ]]; then
     STUDENT_PASSWORD="$DEFAULT_PASSWORD_PLACEHOLDER" bash "$INSTALL_SCRIPT" \
       --student-user "$target_user" \
       --student-fullname "$target_fullname" \

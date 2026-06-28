@@ -10,7 +10,7 @@ UNINSTALL_SCRIPT="$PROJECT_DIR/scripts/uninstall-edulab.sh"
 
 pause_end() {
   echo
-  read -r -p "Nhấn Enter để đóng cửa sổ..." _
+  read -r -p "Nhấn Enter để đóng cửa sổ..." _ || true
 }
 
 die() {
@@ -38,7 +38,9 @@ confirm_uninstall() {
   echo "Script KHÔNG xóa Documents, Downloads, Desktop hoặc thư mục Bai-tap."
   echo "Chrome/ONLYOFFICE và các phần mềm đã cài sẽ được giữ lại mặc định."
   echo
-  read -r -p "Bạn có chắc muốn gỡ cấu hình EduLab không? [y/N]: " answer
+  if ! read -r -p "Bạn có chắc muốn gỡ cấu hình EduLab không? [y/N]: " answer; then
+    answer=""
+  fi
 
   case "${answer,,}" in
     y|yes|c|co|có)
@@ -53,7 +55,9 @@ confirm_uninstall() {
 }
 
 main() {
-  clear || true
+  if [[ -t 0 && -t 1 ]]; then
+    clear || true
+  fi
 
   [[ -f "$UNINSTALL_SCRIPT" ]] || die "Không tìm thấy $UNINSTALL_SCRIPT."
 

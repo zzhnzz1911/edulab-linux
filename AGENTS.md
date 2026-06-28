@@ -12,6 +12,7 @@ Mặc định hiện tại:
 - Không tạo user học sinh mặc định.
 - Không hỏi LMS mặc định.
 - Không tạo shortcut LMS nếu không truyền `--lms-url`.
+- Nếu có `.edulab-installer-password.sha256`, launcher cài sẽ hỏi mã cài đặt EduLab trước khi hỏi sudo.
 
 ## Quy tắc quan trọng
 
@@ -31,6 +32,7 @@ Mặc định hiện tại:
 - `scripts/install-edulab.sh`: cài phần mềm, font, bộ gõ, theme, shortcut.
 - `scripts/uninstall-edulab.sh`: gỡ helper, shortcut, policy và cấu hình EduLab an toàn.
 - `scripts/prepare-oneclick-launcher.sh`: cấp quyền chạy và trust launcher sau khi copy project.
+- `scripts/set-installer-password.sh`: tạo hash mã cài đặt riêng cho launcher.
 - `scripts/build-installer-package.sh`: đóng gói project thành `.tar.gz`, loại `downloads`, `tools`, `vms`.
 - `scripts/post-clone.sh`: chạy sau khi clone máy, chỉ dùng cho phòng máy.
 - `scripts/apply-desktop-style.sh`: áp giao diện EduLab an toàn, quen Windows.
@@ -51,6 +53,7 @@ bash -n scripts/install-win11-look-experimental.sh
 bash -n scripts/edulab-oneclick-installer.sh
 bash -n scripts/edulab-oneclick-uninstaller.sh
 bash -n scripts/prepare-oneclick-launcher.sh
+bash -n scripts/set-installer-password.sh
 bash -n scripts/build-installer-package.sh
 bash -n scripts/uninstall-edulab.sh
 ```

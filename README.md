@@ -36,6 +36,7 @@ Xubuntu LTS cũng phù hợp. Kubuntu LTS đẹp hơn nhưng nên dùng cho máy
     ├── install-win11-look-experimental.sh
     ├── post-clone.sh
     ├── prepare-oneclick-launcher.sh
+    ├── set-installer-password.sh
     └── uninstall-edulab.sh
 ```
 
@@ -58,9 +59,44 @@ Khi bấm file này, EduLab sẽ cài cho **tài khoản Linux hiện tại** tr
 - Cài Chrome mặc định.
 - Tạo shortcut ONLYOFFICE, Trình duyệt và Bài tập.
 
-Trình cài sẽ hỏi bạn có chấp nhận cài đặt không. Nếu đồng ý, hệ thống sẽ hỏi mật khẩu admin/sudo của máy Linux trước khi cài.
+Trình cài sẽ hỏi bạn có chấp nhận cài đặt không. Nếu có cấu hình mã cài đặt riêng, người dùng phải nhập đúng mã EduLab trước. Sau đó hệ thống mới hỏi mật khẩu admin/sudo của máy Linux để cài.
 
 LMS và user học sinh vẫn hỗ trợ bằng dòng lệnh nâng cao, nhưng không bật trong launcher mặc định.
+
+## Bảo mật cài đặt
+
+Nếu cần bảo mật cao, không nên để bộ cài ở repo public. Repo public cho phép người khác đọc hoặc sửa script trước khi chạy, nên mọi kiểm tra password nằm trong script chỉ là lớp chặn người dùng phổ thông.
+
+Cách khuyến nghị:
+
+- Chuyển repository GitHub sang **Private**.
+- Chỉ cấp quyền repository cho người được phép cài, hoặc phát hành gói `.tar.gz` qua kênh riêng.
+- Gửi mã cài đặt EduLab bằng kênh riêng, không commit mật khẩu thô lên Git.
+
+### Mã cài đặt phụ
+
+Mặc định repo không lưu mật khẩu thô. Nếu muốn ai cài cũng phải có mã của bạn, chạy trên máy giữ project:
+
+```bash
+bash scripts/set-installer-password.sh
+git add .edulab-installer-password.sha256
+git commit -m "Set EduLab installer password"
+git push
+```
+
+Từ lần clone sau, `Install-EduLab.desktop` sẽ hỏi mã cài đặt EduLab trước khi chạy cài đặt.
+
+Lưu ý: file `.edulab-installer-password.sha256` chỉ chứa hash, không chứa mật khẩu thật. Dù vậy, với repo public, người rành kỹ thuật vẫn có thể sửa source để bỏ qua bước hỏi mã. Mã này phù hợp để tránh cài nhầm; muốn khóa thật sự thì dùng repo private hoặc gói phát hành riêng.
+
+Trên máy Windows đang giữ project, có thể đặt mã bằng Git Bash:
+
+```powershell
+cd D:\ThayTheWin
+& 'C:\Program Files\Git\bin\bash.exe' scripts/set-installer-password.sh
+& 'C:\Program Files\Git\cmd\git.exe' add .edulab-installer-password.sha256
+& 'C:\Program Files\Git\cmd\git.exe' commit -m "Set EduLab installer password"
+& 'C:\Program Files\Git\cmd\git.exe' push
+```
 
 ## Cài từ link Git
 
@@ -157,6 +193,7 @@ bash -n scripts/install-win11-look-experimental.sh
 bash -n scripts/edulab-oneclick-installer.sh
 bash -n scripts/edulab-oneclick-uninstaller.sh
 bash -n scripts/prepare-oneclick-launcher.sh
+bash -n scripts/set-installer-password.sh
 bash -n scripts/build-installer-package.sh
 bash -n scripts/uninstall-edulab.sh
 ```
