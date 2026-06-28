@@ -13,10 +13,11 @@ from gi.repository import Gdk, GLib, Gtk, Pango
 
 
 WIDTH = 650
-HEIGHT = 520
+MENU_HEIGHT = 520
 TASKBAR_HEIGHT = 40
+HEIGHT = MENU_HEIGHT + TASKBAR_HEIGHT
 START_BUTTON_WIDTH = 48
-TASKBAR_SEARCH_WIDTH = 172
+TASKBAR_SEARCH_WIDTH = 230
 TASKBAR_SEARCH_PID_FILE = f"/tmp/edulab-taskbar-search-{os.getuid()}.pid"
 DESKTOP_FIELD_CODE_RE = re.compile(r"%[fFuUdDnNickvm]")
 
@@ -92,6 +93,34 @@ window {
 }
 
 .taskbar-search entry:focus {
+  box-shadow: none;
+}
+
+.taskbar-strip {
+  background: #101010;
+  color: #f8fafc;
+}
+
+.start-slot {
+  background: #101010;
+  color: #f8fafc;
+}
+
+.start-slot:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.embedded-search-entry {
+  min-height: 34px;
+  border: 0;
+  border-radius: 0;
+  padding-left: 4px;
+  padding-right: 10px;
+  background: #f2f2f2;
+  color: #202020;
+}
+
+.embedded-search-entry:focus {
   box-shadow: none;
 }
 
@@ -320,7 +349,7 @@ def scan_desktop_apps():
 
 
 class StartMenu(Gtk.Window):
-  def __init__(self, controlled=False, initial_query=""):
+  def __init__(self, controlled=False, initial_query="", focus_search=False):
     Gtk.Window.__init__(self, type=Gtk.WindowType.TOPLEVEL)
     self.controlled = controlled
     self.set_title("Start")
@@ -343,17 +372,24 @@ class StartMenu(Gtk.Window):
     self.current_results = []
     self.apps_list = None
     self.rail = None
+    self.search_entry = None
     self.rail_expanded = False
+    self.focus_search_on_map = focus_search
 
     install_css()
 
+    outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+    self.add(outer)
+
     root = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+    root.set_size_request(WIDTH, MENU_HEIGHT)
     add_class(root, "root")
-    self.add(root)
+    outer.pack_start(root, False, False, 0)
 
     root.pack_start(self.build_rail(), False, False, 0)
     root.pack_start(self.build_apps(), False, False, 0)
     root.pack_start(self.build_tiles(), True, True, 18)
+    outer.pack_start(self.build_taskbar_strip(), False, False, 0)
 
     self.position_window()
     if initial_query:
@@ -362,7 +398,7 @@ class StartMenu(Gtk.Window):
   def position_window(self):
     workarea = primary_monitor_workarea()
     x = workarea.x
-    y = workarea.y + workarea.height - HEIGHT
+    y = workarea.y + workarea.height - MENU_HEIGHT
     self.move(max(x, 0), max(y, 0))
 
   def close_menu(self):
@@ -400,7 +436,7 @@ class StartMenu(Gtk.Window):
       self.rail.remove(child)
 
     width = 170 if self.rail_expanded else 48
-    self.rail.set_size_request(width, HEIGHT)
+    self.rail.set_size_request(width, MENU_HEIGHT)
     self.rail.pack_start(self.rail_button("open-menu-symbolic", None, "Start", self.toggle_rail), False, False, 10)
     self.rail.pack_start(Gtk.Box(), True, True, 0)
 
@@ -462,7 +498,7 @@ class StartMenu(Gtk.Window):
 
   def build_apps(self):
     apps = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-    apps.set_size_request(230, HEIGHT)
+    apps.set_size_request(230, MENU_HEIGHT)
     apps.set_border_width(16)
 
     scroller = Gtk.ScrolledWindow()
@@ -474,6 +510,42 @@ class StartMenu(Gtk.Window):
 
     self.populate_apps("")
     return apps
+
+  def build_taskbar_strip(self):
+    strip = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+    strip.set_size_request(WIDTH, TASKBAR_HEIGHT)
+    add_class(strip, "taskbar-strip")
+
+    start_slot = Gtk.EventBox()
+    add_class(start_slot, "start-slot")
+    start_slot.set_size_request(START_BUTTON_WIDTH, TASKBAR_HEIGHT)
+    start_icon = icon("start-here", 22)
+    start_icon.set_halign(Gtk.Align.CENTER)
+    start_icon.set_valign(Gtk.Align.CENTER)
+    start_slot.add(start_icon)
+    start_slot.connect("button-press-event", lambda *_: self.close_menu())
+    strip.pack_start(start_slot, False, False, 0)
+
+    search_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+    search_box.set_size_request(TASKBAR_SEARCH_WIDTH, TASKBAR_HEIGHT)
+    add_class(search_box, "taskbar-search")
+
+    search_icon = icon("system-search-symbolic", 18)
+    search_icon.set_margin_left(12)
+    search_box.pack_start(search_icon, False, False, 0)
+
+    self.search_entry = Gtk.Entry()
+    self.search_entry.set_placeholder_text("Ask me anything")
+    self.search_entry.connect("changed", self.on_search_changed)
+    self.search_entry.connect("activate", self.on_search_activate)
+    self.search_entry.connect("key-press-event", self.on_search_key_press)
+    add_class(self.search_entry, "embedded-search-entry")
+    search_box.pack_start(self.search_entry, True, True, 0)
+    strip.pack_start(search_box, False, False, 0)
+
+    filler = Gtk.Box()
+    strip.pack_start(filler, True, True, 0)
+    return strip
 
   def build_app_entries(self):
     entries = [
@@ -589,12 +661,27 @@ class StartMenu(Gtk.Window):
   def on_search_activate(self, _entry):
     self.launch_current_result()
 
+  def on_search_key_press(self, _widget, event):
+    if event.keyval == Gdk.KEY_Escape:
+      self.close_menu()
+      return True
+    return False
+
   def launch_current_result(self):
     if self.current_results:
       self.launch_command(self.current_results[0]["command"])
 
   def set_search_query(self, query):
-    self.populate_apps(query)
+    if self.search_entry is not None and self.search_entry.get_text() != query:
+      self.search_entry.set_text(query)
+    else:
+      self.populate_apps(query)
+
+  def focus_search(self):
+    if self.search_entry is not None:
+      self.search_entry.grab_focus()
+      self.search_entry.set_position(-1)
+    return False
 
   def tile(self, name, icon_name, command, css_class="tile", width=120, height=90):
     button = Gtk.Button()
@@ -951,8 +1038,10 @@ def main():
   if "DISPLAY" not in os.environ:
     return 1
   if "--taskbar-search" in sys.argv:
-    return run_taskbar_search()
-  window = StartMenu()
+    return 0
+
+  focus_search = "--search" in sys.argv
+  window = StartMenu(focus_search=focus_search)
   window.show_all()
   window.set_skip_taskbar_hint(True)
   window.set_skip_pager_hint(True)
@@ -961,6 +1050,8 @@ def main():
   window.set_skip_taskbar_hint(True)
   window.set_skip_pager_hint(True)
   window.position_window()
+  if focus_search:
+    GLib.idle_add(window.focus_search)
   Gtk.main()
   return 0
 

@@ -165,28 +165,15 @@ configure_taskbar_search_autostart() {
   local autostart_dir="$HOME/.config/autostart"
 
   mkdir -p "$autostart_dir"
-  cat > "$autostart_dir/edulab-taskbar-search.desktop" <<'EOF'
-[Desktop Entry]
-Type=Application
-Name=EduLab Taskbar Search
-Exec=edulab-start-menu --taskbar-search
-Terminal=false
-StartupNotify=false
-X-GNOME-Autostart-enabled=true
-OnlyShowIn=XFCE;
-EOF
+  rm -f "$autostart_dir/edulab-taskbar-search.desktop"
 }
 
 start_taskbar_search() {
-  [[ -n "${DISPLAY:-}" ]] || return 0
-  command -v edulab-start-menu >/dev/null 2>&1 || return 0
-
   if command -v pkill >/dev/null 2>&1; then
     pkill -u "$(id -un)" -f "edulab-start-menu --taskbar-search" >/dev/null 2>&1 || true
     sleep 0.2
   fi
   rm -f "/tmp/edulab-taskbar-search-$(id -u).pid" >/dev/null 2>&1 || true
-  nohup edulab-start-menu --taskbar-search >/dev/null 2>&1 &
 }
 
 gsettings_set_if_exists() {
@@ -450,6 +437,7 @@ apply_xfce_taskbar() {
   local ids=()
   local id=101
   local start_command="edulab-start-menu"
+  local search_command="edulab-start-menu --search"
   local browser_icon
   local input_icon
   local input_command
@@ -457,6 +445,7 @@ apply_xfce_taskbar() {
 
   if ! command -v edulab-start-menu >/dev/null 2>&1; then
     start_command="xfce4-popup-whiskermenu"
+    search_command="xfce4-popup-whiskermenu"
   fi
   browser_icon="$(browser_icon_name)"
 
@@ -477,7 +466,7 @@ apply_xfce_taskbar() {
     id=$((id + 1))
   fi
 
-  if create_panel_launcher "$id" "search.desktop" "$search_label" "$start_command" "system-search" "Utility;" "true"; then
+  if create_panel_launcher "$id" "search.desktop" "$search_label" "$search_command" "system-search" "Utility;" "true"; then
     ids+=("$id")
     id=$((id + 1))
   fi
