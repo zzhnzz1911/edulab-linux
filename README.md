@@ -69,12 +69,10 @@ Trên máy Linux Mint/Xubuntu cần cài, mở Terminal và chạy:
 ```bash
 sudo apt update
 sudo apt install -y git
-git clone https://github.com/USER/edulab-linux.git ~/edulab-linux
+git clone https://github.com/zzhnzz1911/edulab-linux.git ~/edulab-linux
 cd ~/edulab-linux
 bash scripts/prepare-oneclick-launcher.sh
 ```
-
-Đổi `https://github.com/USER/edulab-linux.git` thành link Git thật của bạn.
 
 Sau đó double-click `Install-EduLab.desktop`, hoặc chạy trực tiếp:
 
@@ -201,7 +199,7 @@ git init
 git add .
 git commit -m "Prepare EduLab installer for Git distribution"
 git branch -M main
-git remote add origin https://github.com/USER/edulab-linux.git
+git remote add origin https://github.com/zzhnzz1911/edulab-linux.git
 git push -u origin main
 ```
 
