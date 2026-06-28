@@ -16,7 +16,7 @@ WIDTH = 650
 HEIGHT = 520
 TASKBAR_HEIGHT = 40
 START_BUTTON_WIDTH = 48
-TASKBAR_SEARCH_WIDTH = 230
+TASKBAR_SEARCH_WIDTH = 172
 TASKBAR_SEARCH_PID_FILE = f"/tmp/edulab-taskbar-search-{os.getuid()}.pid"
 DESKTOP_FIELD_CODE_RE = re.compile(r"%[fFuUdDnNickvm]")
 
@@ -222,6 +222,14 @@ def primary_monitor_workarea():
     return geometry
 
 
+def primary_monitor_geometry():
+  screen = Gdk.Screen.get_default()
+  monitor = screen.get_primary_monitor()
+  if monitor < 0:
+    monitor = 0
+  return screen.get_monitor_geometry(monitor)
+
+
 def clean_desktop_exec(exec_line):
   try:
     parts = shlex.split(exec_line)
@@ -315,6 +323,8 @@ class StartMenu(Gtk.Window):
   def __init__(self, controlled=False, initial_query=""):
     Gtk.Window.__init__(self, type=Gtk.WindowType.TOPLEVEL)
     self.controlled = controlled
+    self.set_title("Start")
+    self.set_wmclass("edulab-start-menu", "EduLabStartMenu")
     self.set_decorated(False)
     self.set_resizable(False)
     self.set_skip_taskbar_hint(True)
@@ -322,7 +332,7 @@ class StartMenu(Gtk.Window):
     self.set_keep_above(True)
     if self.controlled:
       self.set_focus_on_map(False)
-    self.set_type_hint(Gdk.WindowTypeHint.POPUP_MENU)
+    self.set_type_hint(Gdk.WindowTypeHint.DROPDOWN_MENU)
     self.set_default_size(WIDTH, HEIGHT)
     self.set_size_request(WIDTH, HEIGHT)
     self.connect("focus-out-event", self.on_focus_out)
@@ -678,6 +688,8 @@ class TaskbarSearch(Gtk.Window):
   def __init__(self):
     Gtk.Window.__init__(self, type=Gtk.WindowType.TOPLEVEL)
     install_css()
+    self.set_title("EduLab Taskbar Search")
+    self.set_wmclass("edulab-taskbar-search", "EduLabTaskbarSearch")
     self.set_decorated(False)
     self.set_resizable(False)
     self.set_skip_taskbar_hint(True)
@@ -685,7 +697,7 @@ class TaskbarSearch(Gtk.Window):
     self.set_accept_focus(True)
     self.set_focus_on_map(False)
     self.set_keep_above(True)
-    self.set_type_hint(Gdk.WindowTypeHint.UTILITY)
+    self.set_type_hint(Gdk.WindowTypeHint.DOCK)
     self.set_default_size(TASKBAR_SEARCH_WIDTH, TASKBAR_HEIGHT)
     self.set_size_request(TASKBAR_SEARCH_WIDTH, TASKBAR_HEIGHT)
     self.start_menu = None
@@ -713,14 +725,23 @@ class TaskbarSearch(Gtk.Window):
     GLib.timeout_add_seconds(2, self.keep_positioned)
 
   def position_window(self):
-    workarea = primary_monitor_workarea()
-    x = workarea.x + START_BUTTON_WIDTH
-    y = workarea.y + workarea.height
+    geometry = primary_monitor_geometry()
+    x = geometry.x + START_BUTTON_WIDTH
+    y = geometry.y + geometry.height - TASKBAR_HEIGHT
     self.move(max(x, 0), max(y, 0))
 
   def keep_positioned(self):
     self.position_window()
+    self.raise_window()
     return True
+
+  def raise_window(self):
+    self.set_skip_taskbar_hint(True)
+    self.set_skip_pager_hint(True)
+    gdk_window = self.get_window()
+    if gdk_window is not None:
+      gdk_window.raise_()
+    return False
 
   def ensure_start_menu(self):
     query = self.entry.get_text()
@@ -822,6 +843,10 @@ def run_taskbar_search():
   write_taskbar_search_pid()
   window = TaskbarSearch()
   window.show_all()
+  window.set_skip_taskbar_hint(True)
+  window.set_skip_pager_hint(True)
+  window.position_window()
+  GLib.idle_add(window.raise_window)
   Gtk.main()
   remove_taskbar_search_pid()
   return 0
@@ -834,8 +859,12 @@ def main():
     return run_taskbar_search()
   window = StartMenu()
   window.show_all()
+  window.set_skip_taskbar_hint(True)
+  window.set_skip_pager_hint(True)
   window.position_window()
   window.present()
+  window.set_skip_taskbar_hint(True)
+  window.set_skip_pager_hint(True)
   window.position_window()
   Gtk.main()
   return 0

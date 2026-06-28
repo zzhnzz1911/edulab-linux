@@ -185,6 +185,7 @@ start_taskbar_search() {
     pkill -u "$(id -un)" -f "edulab-start-menu --taskbar-search" >/dev/null 2>&1 || true
     sleep 0.2
   fi
+  rm -f "/tmp/edulab-taskbar-search-$(id -u).pid" >/dev/null 2>&1 || true
   nohup edulab-start-menu --taskbar-search >/dev/null 2>&1 &
 }
 
@@ -316,7 +317,6 @@ label:disabled {
   background-color: rgba(0, 120, 215, 0.34);
 }
 
-.xfce4-panel label,
 .xfce4-panel button label {
   color: #f8fafc;
 }
