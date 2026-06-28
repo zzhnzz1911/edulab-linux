@@ -205,7 +205,7 @@ def install_css():
   Gtk.StyleContext.add_provider_for_screen(
     Gdk.Screen.get_default(),
     css_provider,
-    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+    Gtk.STYLE_PROVIDER_PRIORITY_USER + 1,
   )
 
 
@@ -697,9 +697,10 @@ class TaskbarSearch(Gtk.Window):
     self.set_accept_focus(True)
     self.set_focus_on_map(False)
     self.set_keep_above(True)
-    self.set_type_hint(Gdk.WindowTypeHint.DOCK)
+    self.set_type_hint(Gdk.WindowTypeHint.UTILITY)
     self.set_default_size(TASKBAR_SEARCH_WIDTH, TASKBAR_HEIGHT)
     self.set_size_request(TASKBAR_SEARCH_WIDTH, TASKBAR_HEIGHT)
+    self.connect("button-press-event", self.on_button_press)
     self.start_menu = None
     self.suppress_changed = False
 
@@ -763,6 +764,12 @@ class TaskbarSearch(Gtk.Window):
       self.start_menu.hide()
 
   def on_focus_in(self, *_args):
+    self.ensure_start_menu()
+    self.entry.grab_focus()
+    return False
+
+  def on_button_press(self, *_args):
+    self.entry.grab_focus()
     self.ensure_start_menu()
     return False
 
