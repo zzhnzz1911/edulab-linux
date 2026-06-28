@@ -1,0 +1,18 @@
+# Thư mục build/đóng gói
+dist/
+
+# File tải về và máy ảo kiểm thử, không đưa lên Git
+downloads/
+tools/
+vms/
+
+# Log/tạm
+*.log
+*.tmp
+*.swp
+
+# Metadata hệ điều hành/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

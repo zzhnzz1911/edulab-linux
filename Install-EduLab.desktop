@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Cài EduLab Linux
+Comment=Cài giao diện và phần mềm EduLab cho máy Linux hiện tại
+Exec=bash -lc "launcher=\"$0\"; dir=\"$(cd -- \"$(dirname -- \"$launcher\")\" && pwd)\"; cd \"$dir\" && exec bash scripts/edulab-oneclick-installer.sh" %k
+Terminal=true
+Icon=system-software-install
+Categories=System;Settings;
+StartupNotify=true

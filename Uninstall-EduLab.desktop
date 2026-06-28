@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Gỡ EduLab Linux
+Comment=Gỡ shortcut và cấu hình EduLab khỏi máy Linux hiện tại
+Exec=bash -lc "launcher=\"$0\"; dir=\"$(cd -- \"$(dirname -- \"$launcher\")\" && pwd)\"; cd \"$dir\" && exec bash scripts/edulab-oneclick-uninstaller.sh" %k
+Terminal=true
+Icon=edit-delete
+Categories=System;Settings;
+StartupNotify=true
