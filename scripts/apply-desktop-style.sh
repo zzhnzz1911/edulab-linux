@@ -124,8 +124,20 @@ input_menu_command() {
   fi
 }
 
+quick_settings_menu_command() {
+  if command -v edulab-quick-settings-menu >/dev/null 2>&1; then
+    printf '%s\n' "edulab-quick-settings-menu"
+  elif [[ -f "$SCRIPT_DIR/edulab-quick-settings-menu.py" ]]; then
+    printf '%s\n' "python3 \"$SCRIPT_DIR/edulab-quick-settings-menu.py\""
+  else
+    printf '%s\n' "xfce4-settings-manager"
+  fi
+}
+
 volume_menu_command() {
-  if command -v edulab-volume-menu >/dev/null 2>&1; then
+  if command -v edulab-quick-settings-menu >/dev/null 2>&1 || [[ -f "$SCRIPT_DIR/edulab-quick-settings-menu.py" ]]; then
+    quick_settings_menu_command
+  elif command -v edulab-volume-menu >/dev/null 2>&1; then
     printf '%s\n' "edulab-volume-menu"
   elif [[ -f "$SCRIPT_DIR/edulab-volume-menu.py" ]]; then
     printf '%s\n' "python3 \"$SCRIPT_DIR/edulab-volume-menu.py\""
@@ -141,6 +153,16 @@ notification_menu_command() {
     printf '%s\n' "python3 \"$SCRIPT_DIR/edulab-notification-menu.py\""
   else
     printf '%s\n' "xfce4-notifyd-config"
+  fi
+}
+
+power_menu_command() {
+  if command -v edulab-quick-settings-menu >/dev/null 2>&1 || [[ -f "$SCRIPT_DIR/edulab-quick-settings-menu.py" ]]; then
+    quick_settings_menu_command
+  elif command -v xfce4-power-manager-settings >/dev/null 2>&1; then
+    printf '%s\n' "xfce4-power-manager-settings"
+  else
+    printf '%s\n' "xfce4-settings-manager"
   fi
 }
 
@@ -181,6 +203,22 @@ create_volume_indicator_icon() {
   <path d="M9 26h11l15-12v36L20 38H9z" fill="#f8fafc"/>
   <path d="M42 22c4 5 4 15 0 20" fill="none" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
   <path d="M49 15c8 10 8 24 0 34" fill="none" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+</svg>
+EOF
+  printf '%s\n' "$icon_path"
+}
+
+create_power_indicator_icon() {
+  local icon_dir="$HOME/.config/edulab/icons"
+  local icon_path="$icon_dir/power-win10.svg"
+
+  mkdir -p "$icon_dir"
+  cat > "$icon_path" <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="none"/>
+  <rect x="10" y="22" width="40" height="22" rx="3" fill="none" stroke="#f8fafc" stroke-width="4"/>
+  <rect x="52" y="28" width="4" height="10" rx="1" fill="#f8fafc"/>
+  <rect x="16" y="28" width="24" height="10" rx="1" fill="#f8fafc"/>
 </svg>
 EOF
   printf '%s\n' "$icon_path"
@@ -492,6 +530,8 @@ apply_xfce_taskbar() {
   local browser_icon
   local input_icon
   local input_command
+  local power_icon
+  local power_command
   local volume_icon
   local volume_command
   local notification_icon
@@ -552,13 +592,21 @@ apply_xfce_taskbar() {
   id=$((id + 1))
 
   local plugin
-  for plugin in systray power-manager-plugin; do
+  for plugin in systray; do
     if panel_plugin_available "$plugin"; then
       set_panel_plugin_type "$id" "$plugin"
       ids+=("$id")
       id=$((id + 1))
     fi
   done
+
+  power_icon="$(create_power_indicator_icon)"
+  power_command="$(power_menu_command)"
+  if create_panel_launcher "$id" "power.desktop" "Power" "$power_command" "$power_icon" "Utility;"; then
+    xfconf_set xfce4-panel "/plugins/plugin-$id/disable-tooltips" bool "true"
+    ids+=("$id")
+    id=$((id + 1))
+  fi
 
   volume_icon="$(create_volume_indicator_icon)"
   volume_command="$(volume_menu_command)"

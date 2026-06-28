@@ -1106,7 +1106,7 @@ def main():
 
   signal.signal(signal.SIGTERM, close_from_signal)
   write_start_menu_pid()
-  focus_search = "--search" in sys.argv
+  focus_search = True
   window = StartMenu(focus_search=focus_search)
   window.show_all()
   window.set_skip_taskbar_hint(True)
@@ -1116,8 +1116,8 @@ def main():
   window.set_skip_taskbar_hint(True)
   window.set_skip_pager_hint(True)
   window.position_window()
-  if focus_search:
-    GLib.idle_add(window.focus_search)
+  GLib.idle_add(window.focus_search)
+  GLib.timeout_add(120, window.focus_search)
   try:
     Gtk.main()
   finally:

@@ -202,8 +202,10 @@ remove_user_shortcuts() {
   remove_file "$home/.config/edulab/desktop-style-v20.done"
   remove_file "$home/.config/edulab/desktop-style-v21.done"
   remove_file "$home/.config/edulab/desktop-style-v22.done"
+  remove_file "$home/.config/edulab/desktop-style-v23.done"
   remove_file "$home/.config/autostart/edulab-taskbar-search.desktop"
   remove_file "$home/.config/edulab/icons/input-eng.svg"
+  remove_file "$home/.config/edulab/icons/power-win10.svg"
   remove_file "$home/.config/edulab/icons/volume-win10.svg"
   remove_file "$home/.config/edulab/icons/notifications-win10.svg"
   remove_file "$home/.local/share/backgrounds/edulab/windows-10-blue-gradient.jpg"
@@ -237,6 +239,7 @@ remove_user_shortcuts() {
   remove_file "$home/.config/xfce4/panel/launcher-110/input-language.desktop"
   local panel_id
   for panel_id in {101..120}; do
+    remove_file "$home/.config/xfce4/panel/launcher-$panel_id/power.desktop"
     remove_file "$home/.config/xfce4/panel/launcher-$panel_id/volume.desktop"
     remove_file "$home/.config/xfce4/panel/launcher-$panel_id/notifications.desktop"
     remove_empty_dir "$home/.config/xfce4/panel/launcher-$panel_id"
@@ -266,6 +269,7 @@ remove_system_helpers() {
   remove_file "/usr/local/bin/edulab-apply-desktop-style"
   remove_file "/usr/local/bin/edulab-start-menu"
   remove_file "/usr/local/bin/edulab-input-menu"
+  remove_file "/usr/local/bin/edulab-quick-settings-menu"
   remove_file "/usr/local/bin/edulab-volume-menu"
   remove_file "/usr/local/bin/edulab-notification-menu"
   remove_file "/usr/local/bin/edulab-search"
