@@ -298,7 +298,7 @@ install_base_packages() {
     fonts-dejavu fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji \
     fonts-liberation fonts-crosextra-carlito fonts-crosextra-caladea \
     ibus ibus-gtk ibus-gtk3 ibus-gtk4 ibus-unikey im-config language-pack-vi \
-    network-manager-gnome pulseaudio-utils pavucontrol brightnessctl \
+    network-manager-gnome pulseaudio-utils pavucontrol brightnessctl xbacklight \
     arc-theme papirus-icon-theme thunar thunar-volman xfce4-whiskermenu-plugin \
     xfce4-pulseaudio-plugin xfce4-power-manager xfce4-power-manager-plugins xfce4-notifyd \
     file-roller p7zip-full unzip
@@ -413,7 +413,7 @@ install_helper_scripts() {
 # Chạy một lần khi user đăng nhập để áp theme và bộ gõ.
 set -u
 
-MARKER="$HOME/.config/edulab/desktop-style-v27.done"
+MARKER="$HOME/.config/edulab/desktop-style-v28.done"
 mkdir -p "$HOME/.config/edulab"
 if [[ -f "$MARKER" ]]; then
   exit 0
@@ -500,9 +500,7 @@ set -u
 
 mkdir -p "$HOME/.cache/edulab"
 if command -v edulab-quick-settings-menu >/dev/null 2>&1; then
-  pkill -u "$(id -un)" -f "edulab-quick-settings-menu" >/dev/null 2>&1 || true
-  rm -f "/tmp/edulab-quick-settings-menu-$(id -u).pid" >/dev/null 2>&1 || true
-  nohup edulab-quick-settings-menu >>"$HOME/.cache/edulab/quick-settings.log" 2>&1 &
+  nohup edulab-quick-settings-menu --toggle >>"$HOME/.cache/edulab/quick-settings.log" 2>&1 &
   exit 0
 fi
 

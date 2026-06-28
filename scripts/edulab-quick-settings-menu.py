@@ -17,6 +17,11 @@ WIDTH = 540
 HEIGHT = 438
 TASKBAR_HEIGHT = 40
 PID_FILE = f"/tmp/edulab-quick-settings-menu-{os.getuid()}.pid"
+BUTTON_MASKS = (
+  Gdk.ModifierType.BUTTON1_MASK
+  | Gdk.ModifierType.BUTTON2_MASK
+  | Gdk.ModifierType.BUTTON3_MASK
+)
 
 
 CSS = b"""
@@ -288,6 +293,18 @@ def pointer_position(screen):
   return None
 
 
+def pointer_data(screen):
+  try:
+    data = screen.get_root_window().get_pointer()
+  except Exception:
+    return None
+  if len(data) == 3:
+    return int(data[0]), int(data[1]), data[2]
+  if len(data) >= 4:
+    return int(data[1]), int(data[2]), data[3]
+  return None
+
+
 class QuickSettingsMenu(Gtk.Window):
   def __init__(self):
     Gtk.Window.__init__(self, type=Gtk.WindowType.POPUP)
@@ -303,6 +320,7 @@ class QuickSettingsMenu(Gtk.Window):
     self.set_size_request(WIDTH, HEIGHT)
     self.had_focus = False
     self.mapped_at = time.monotonic()
+    self.pointer_was_down = False
     self.updating = False
     self.connect("focus-in-event", self.on_focus_in)
     self.connect("focus-out-event", self.on_focus_out)
@@ -378,6 +396,7 @@ class QuickSettingsMenu(Gtk.Window):
     self.refresh_volume_icon()
     self.position_window()
     GLib.timeout_add(300, self.close_when_unfocused)
+    GLib.timeout_add(90, self.close_on_outside_click)
 
   def tile(self, icon_name, title, subtitle="", active=False, callback=None):
     button = Gtk.Button()
@@ -530,6 +549,28 @@ class QuickSettingsMenu(Gtk.Window):
       return False
     return True
 
+  def close_on_outside_click(self):
+    if time.monotonic() - self.mapped_at < 0.35:
+      return True
+
+    screen = Gdk.Screen.get_default()
+    data = pointer_data(screen)
+    if data is None:
+      return True
+
+    pointer_x, pointer_y, state = data
+    pointer_down = bool(state & BUTTON_MASKS)
+    win_x, win_y = self.get_position()
+    win_w, win_h = self.get_size()
+    inside = win_x <= pointer_x < win_x + win_w and win_y <= pointer_y < win_y + win_h
+
+    if pointer_down and not self.pointer_was_down and not inside:
+      Gtk.main_quit()
+      return False
+
+    self.pointer_was_down = pointer_down
+    return True
+
 
 def existing_menu_pid():
   try:
@@ -571,6 +612,22 @@ def close_existing_menu():
       pass
 
 
+def toggle_existing_menu():
+  pid = existing_menu_pid()
+  if pid and pid != os.getpid() and process_alive(pid) and process_is_ours(pid):
+    try:
+      os.kill(pid, signal.SIGTERM)
+    except OSError:
+      pass
+    return True
+  if pid and not process_alive(pid):
+    try:
+      os.remove(PID_FILE)
+    except OSError:
+      pass
+  return False
+
+
 def write_pid_file():
   try:
     with open(PID_FILE, "w", encoding="utf-8") as handle:
@@ -590,7 +647,11 @@ def remove_pid_file():
 def main():
   if "DISPLAY" not in os.environ:
     return 1
-  close_existing_menu()
+  if "--toggle" in sys.argv:
+    if toggle_existing_menu():
+      return 0
+  else:
+    close_existing_menu()
   write_pid_file()
   window = QuickSettingsMenu()
   window.show_all()
