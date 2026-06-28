@@ -8,6 +8,7 @@ import time
 
 import gi
 
+gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GLib, Gtk
 
@@ -554,20 +555,19 @@ def process_is_ours(pid):
   return "edulab-quick-settings-menu" in cmdline or "edulab-quick-settings-menu.py" in cmdline
 
 
-def toggle_existing_menu():
+def close_existing_menu():
   pid = existing_menu_pid()
   if pid and pid != os.getpid() and process_alive(pid) and process_is_ours(pid):
     try:
       os.kill(pid, signal.SIGTERM)
     except OSError:
       pass
-    return True
+    time.sleep(0.08)
   if pid and not process_alive(pid):
     try:
       os.remove(PID_FILE)
     except OSError:
       pass
-  return False
 
 
 def write_pid_file():
@@ -589,8 +589,7 @@ def remove_pid_file():
 def main():
   if "DISPLAY" not in os.environ:
     return 1
-  if toggle_existing_menu():
-    return 0
+  close_existing_menu()
   write_pid_file()
   window = QuickSettingsMenu()
   window.show_all()
@@ -604,4 +603,8 @@ def main():
 
 
 if __name__ == "__main__":
-  sys.exit(main())
+  try:
+    sys.exit(main())
+  except Exception as error:
+    print(f"edulab-quick-settings-menu error: {error}", file=sys.stderr)
+    raise

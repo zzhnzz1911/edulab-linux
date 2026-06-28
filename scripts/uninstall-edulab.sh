@@ -204,6 +204,7 @@ remove_user_shortcuts() {
   remove_file "$home/.config/edulab/desktop-style-v22.done"
   remove_file "$home/.config/edulab/desktop-style-v23.done"
   remove_file "$home/.config/edulab/desktop-style-v24.done"
+  remove_file "$home/.config/edulab/desktop-style-v25.done"
   remove_file "$home/.config/autostart/edulab-taskbar-search.desktop"
   remove_file "$home/.config/edulab/icons/input-eng.svg"
   remove_file "$home/.config/edulab/icons/power-win10.svg"
