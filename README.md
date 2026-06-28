@@ -2,7 +2,7 @@
 
 Bộ script tùy biến Linux Mint/Xubuntu Xfce thành giao diện Windows 10-like.
 
-Script chạy trên user Linux hiện tại, thường là user admin đang dùng `sudo`. Dự án không tạo user `student`, không tạo thư mục bài tập và không xóa dữ liệu cá nhân.
+Script chạy trên user Linux hiện tại, thường là user admin đang dùng `sudo`.
 
 ## Có Gì
 
