@@ -35,7 +35,8 @@ window {
 .rail button {
   border: 0;
   border-radius: 0;
-  padding: 11px 0;
+  padding: 0;
+  min-height: 40px;
   background: transparent;
   color: #f3f3f3;
 }
@@ -98,6 +99,10 @@ window {
 
 .tile-wide {
   background: #0078d7;
+}
+
+.tile-browser {
+  background: #1f5f91;
 }
 
 .tile-blue2 {
@@ -297,9 +302,14 @@ class StartMenu(Gtk.Window):
     monitor = screen.get_primary_monitor()
     if monitor < 0:
       monitor = 0
-    geometry = screen.get_monitor_geometry(monitor)
-    x = geometry.x
-    y = geometry.y + geometry.height - HEIGHT - TASKBAR_HEIGHT
+    try:
+      workarea = screen.get_monitor_workarea(monitor)
+      x = workarea.x
+      y = workarea.y + workarea.height - HEIGHT
+    except AttributeError:
+      geometry = screen.get_monitor_geometry(monitor)
+      x = geometry.x
+      y = geometry.y + geometry.height - HEIGHT - TASKBAR_HEIGHT
     self.move(max(x, 0), max(y, 0))
 
   def on_key_press(self, _widget, event):
@@ -336,8 +346,14 @@ class StartMenu(Gtk.Window):
   def rail_button(self, icon_name, command, text=None, callback=None):
     button = Gtk.Button()
     button.set_relief(Gtk.ReliefStyle.NONE)
+    button.set_can_focus(False)
+    button.set_size_request(170 if self.rail_expanded else 48, 40)
     row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-    row.pack_start(icon(icon_name, 18), False, False, 0)
+    row.set_valign(Gtk.Align.CENTER)
+    row.set_halign(Gtk.Align.FILL if self.rail_expanded else Gtk.Align.CENTER)
+    icon_widget = icon(icon_name, 18)
+    icon_widget.set_halign(Gtk.Align.CENTER)
+    row.pack_start(icon_widget, False, False, 0)
     if self.rail_expanded and text:
       row.pack_start(label(text), True, True, 0)
     button.add(row)
@@ -525,7 +541,7 @@ class StartMenu(Gtk.Window):
     grid.set_row_spacing(2)
     grid.set_column_spacing(2)
 
-    grid.attach(self.tile("Browser", browser_icon_name(), self.browser_command(), "tile-wide", 126, 94), 0, 0, 1, 1)
+    grid.attach(self.tile("Browser", browser_icon_name(), self.browser_command(), "tile-browser", 126, 94), 0, 0, 1, 1)
     grid.attach(self.tile("Settings", "preferences-system", self.settings_command(), "tile-blue2", 126, 94), 1, 0, 1, 1)
     grid.attach(self.tile("File Explorer", "system-file-manager", ["edulab-open-files"], "tile-blue2", 126, 94), 0, 1, 1, 1)
     grid.attach(self.tile("ONLYOFFICE", "onlyoffice-desktopeditors", ["desktopeditors"], "tile-teal", 126, 94), 1, 1, 1, 1)
@@ -592,7 +608,9 @@ def main():
     return 1
   window = StartMenu()
   window.show_all()
+  window.position_window()
   window.present()
+  window.position_window()
   Gtk.main()
   return 0
 

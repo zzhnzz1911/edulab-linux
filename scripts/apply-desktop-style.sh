@@ -124,6 +124,18 @@ input_menu_command() {
   fi
 }
 
+search_menu_command() {
+  if command -v edulab-search >/dev/null 2>&1; then
+    printf '%s\n' "edulab-search"
+  elif [[ -x "$SCRIPT_DIR/edulab-search.py" ]]; then
+    printf '%s\n' "$SCRIPT_DIR/edulab-search.py"
+  elif command -v xfce4-appfinder >/dev/null 2>&1; then
+    printf '%s\n' "xfce4-appfinder"
+  else
+    printf '%s\n' "edulab-start-menu"
+  fi
+}
+
 browser_icon_name() {
   if command -v google-chrome-stable >/dev/null 2>&1 || command -v google-chrome >/dev/null 2>&1; then
     printf '%s\n' "google-chrome"
@@ -148,31 +160,6 @@ create_input_indicator_icon() {
 </svg>
 EOF
   printf '%s\n' "$icon_path"
-}
-
-configure_verve_search_plugin() {
-  local id="$1"
-  local config_dir="$HOME/.config/xfce4/panel"
-  local rc_file="$config_dir/verve-$id.rc"
-
-  mkdir -p "$config_dir"
-  cat > "$rc_file" <<'EOF'
-size=30
-label=Ask me anything
-foreground-color=rgb(24,24,24)
-background-color=rgb(242,242,242)
-base-color=rgb(242,242,242)
-history-length=25
-use-url=true
-use-email=false
-use-dir=true
-use-wordexp=true
-use-bang=false
-use-backslash=false
-use-smartbookmark=false
-use-shell=true
-smartbookmark-url=
-EOF
 }
 
 backup_xfce_panel() {
@@ -292,6 +279,8 @@ EOF
   border-radius: 0;
   margin: 0;
   padding: 2px 11px;
+  min-height: 34px;
+  min-width: 38px;
   color: #f8fafc;
 }
 
@@ -322,6 +311,34 @@ EOF
   min-width: 48px;
   padding-left: 14px;
   padding-right: 14px;
+}
+
+menu,
+.menu,
+popover,
+.popover {
+  background-color: #f4f4f4;
+  color: #202020;
+}
+
+menu label,
+menuitem label,
+popover label,
+.popover label {
+  color: #202020;
+}
+
+menuitem:disabled label,
+menuitem label:disabled,
+popover label:disabled,
+.popover label:disabled {
+  color: #707070;
+}
+
+menuitem:hover,
+menuitem:hover label {
+  background-color: #0078d7;
+  color: #ffffff;
 }
 EOF
 }
@@ -363,11 +380,13 @@ apply_xfce_taskbar() {
   local browser_icon
   local input_icon
   local input_command
+  local search_command
 
   if ! command -v edulab-start-menu >/dev/null 2>&1; then
     start_command="xfce4-popup-whiskermenu"
   fi
   browser_icon="$(browser_icon_name)"
+  search_command="$(search_menu_command)"
 
   if create_panel_launcher "$id" "start.desktop" "Start" "$start_command" "start-here" "Utility;"; then
     ids+=("$id")
@@ -386,12 +405,7 @@ apply_xfce_taskbar() {
     id=$((id + 1))
   fi
 
-  if panel_plugin_available verve; then
-    set_panel_plugin_type "$id" verve
-    configure_verve_search_plugin "$id"
-    ids+=("$id")
-    id=$((id + 1))
-  elif create_panel_launcher "$id" "search.desktop" "Ask me anything" "$start_command" "system-search" "Utility;" "true"; then
+  if create_panel_launcher "$id" "search.desktop" "Ask me anything" "$search_command" "system-search" "Utility;" "true"; then
     ids+=("$id")
     id=$((id + 1))
   fi
