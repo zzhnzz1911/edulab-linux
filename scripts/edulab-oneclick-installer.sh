@@ -165,9 +165,8 @@ main() {
 
   target_fullname="$(current_user_fullname "$target_user")"
 
-  echo "Mặc định sẽ cài đầy đủ cho tài khoản hiện tại: $target_user"
-  echo "Không tạo user học sinh, không hỏi LMS, không tạo shortcut LMS."
-  echo "Sẽ cài giao diện, font, bộ gõ tiếng Việt, ONLYOFFICE, trình duyệt và shortcut cơ bản."
+  echo "Sẽ cài EduLab cho tài khoản Linux hiện tại: $target_user"
+  echo "Bao gồm giao diện, font, bộ gõ tiếng Việt, ONLYOFFICE, trình duyệt và shortcut cơ bản."
   echo
   echo "Nếu được hỏi mật khẩu, nhập mật khẩu admin/sudo của máy Linux này."
   echo
