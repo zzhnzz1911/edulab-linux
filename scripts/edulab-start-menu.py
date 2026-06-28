@@ -374,19 +374,19 @@ class StartMenu(Gtk.Window):
     apps.set_size_request(230, HEIGHT)
     apps.set_border_width(16)
 
-    self.search_entry = Gtk.SearchEntry()
-    self.search_entry.set_placeholder_text("Type to search")
-    self.search_entry.connect("search-changed", self.on_search_changed)
-    self.search_entry.connect("activate", self.on_search_activate)
-    add_class(self.search_entry, "search-entry")
-    apps.pack_start(self.search_entry, False, False, 0)
-
     scroller = Gtk.ScrolledWindow()
     scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
     scroller.set_shadow_type(Gtk.ShadowType.NONE)
     self.apps_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
     scroller.add(self.apps_list)
-    apps.pack_start(scroller, True, True, 8)
+    apps.pack_start(scroller, True, True, 0)
+
+    self.search_entry = Gtk.SearchEntry()
+    self.search_entry.set_placeholder_text("Ask me anything")
+    self.search_entry.connect("search-changed", self.on_search_changed)
+    self.search_entry.connect("activate", self.on_search_activate)
+    add_class(self.search_entry, "search-entry")
+    apps.pack_start(self.search_entry, False, False, 8)
 
     self.populate_apps("")
     return apps

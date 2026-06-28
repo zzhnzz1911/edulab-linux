@@ -279,6 +279,10 @@ EOF
   background-color: rgba(0, 120, 215, 0.34);
 }
 
+.xfce4-panel button label {
+  color: #f8fafc;
+}
+
 #whiskermenu-button {
   min-width: 48px;
   padding-left: 14px;
@@ -343,6 +347,11 @@ apply_xfce_taskbar() {
     xfconf_set xfce4-panel "/plugins/plugin-$id/show-command-settings" bool "true"
     xfconf_set xfce4-panel "/plugins/plugin-$id/show-command-lockscreen" bool "true"
     xfconf_set xfce4-panel "/plugins/plugin-$id/show-command-switchuser" bool "false"
+    ids+=("$id")
+    id=$((id + 1))
+  fi
+
+  if create_panel_launcher "$id" "search.desktop" "Ask me anything" "$start_command" "system-search" "Utility;" "true"; then
     ids+=("$id")
     id=$((id + 1))
   fi

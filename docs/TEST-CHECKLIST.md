@@ -38,8 +38,9 @@ Checklist này dùng cho VM master, máy clone thử và lô máy thật trướ
 - [ ] Shortcut File Explorer mở thư mục cá nhân trong file manager.
 - [ ] Shortcut Settings mở trung tâm cài đặt hệ thống.
 - [ ] Nếu có cấu hình `--lms-url`, shortcut LMS mở đúng URL của trường.
-- [ ] Taskbar nằm dưới, nút Start bên trái, File Explorer/trình duyệt được ghim, app icon-only, tray/power/network/volume/ENG/clock/notification bên phải.
-- [ ] Nút Start hoặc phím Super mở menu tối có rail user/settings/power, ô tìm kiếm, app list và tile ghim.
+- [ ] Taskbar nằm dưới, nút Start bên trái, ô tìm kiếm `Ask me anything`, File Explorer/trình duyệt được ghim, app icon-only, tray/power/network/volume/ENG/clock/notification bên phải.
+- [ ] Bấm ô tìm kiếm trên taskbar mở menu Start/search và focus vào ô tìm kiếm.
+- [ ] Nút Start hoặc phím Super mở menu tối có rail user/settings/power, app list, tile ghim và ô tìm kiếm ở đáy.
 - [ ] Nút 3 gạch trong Start bung/thu rail bên trái và hiện chữ User/Settings/Power.
 - [ ] Gõ trong Start menu lọc được ứng dụng, nhấn Enter mở kết quả đầu tiên.
 - [ ] Desktop shortcut không hiện cảnh báo "Untrusted application launcher" khi mở.
