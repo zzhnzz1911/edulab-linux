@@ -407,12 +407,13 @@ install_helper_scripts() {
   local open_settings
   local open_files
   local browser_helper
+  local quick_settings_helper
 
   first_login='#!/usr/bin/env bash
 # Chạy một lần khi user đăng nhập để áp theme và bộ gõ.
 set -u
 
-MARKER="$HOME/.config/edulab/desktop-style-v23.done"
+MARKER="$HOME/.config/edulab/desktop-style-v24.done"
 mkdir -p "$HOME/.config/edulab"
 if [[ -f "$MARKER" ]]; then
   exit 0
@@ -493,18 +494,36 @@ done
 exec xdg-open "${1:-about:blank}"
 '
 
+  quick_settings_helper='#!/usr/bin/env bash
+# Mở quick settings Windows-like và ghi log nếu helper bị lỗi.
+set -u
+
+mkdir -p "$HOME/.cache/edulab"
+if command -v edulab-quick-settings-menu >/dev/null 2>&1; then
+  exec edulab-quick-settings-menu >>"$HOME/.cache/edulab/quick-settings.log" 2>&1
+fi
+
+if command -v xfce4-settings-manager >/dev/null 2>&1; then
+  exec xfce4-settings-manager
+fi
+
+exec xdg-open "$HOME/.config"
+'
+
   write_root_file "/usr/local/bin/edulab-first-login.sh" "$first_login"
   write_root_file "/usr/local/bin/edulab-open-lms" "$open_lms"
   write_root_file "/usr/local/bin/edulab-open-settings" "$open_settings"
   write_root_file "/usr/local/bin/edulab-open-files" "$open_files"
   write_root_file "/usr/local/bin/edulab-browser" "$browser_helper"
+  write_root_file "/usr/local/bin/edulab-open-quick-settings" "$quick_settings_helper"
   run rm -f /usr/local/bin/edulab-open-exercises /usr/local/bin/edulab-language-indicator
   run chmod 0755 \
     /usr/local/bin/edulab-first-login.sh \
     /usr/local/bin/edulab-open-lms \
     /usr/local/bin/edulab-open-settings \
     /usr/local/bin/edulab-open-files \
-    /usr/local/bin/edulab-browser
+    /usr/local/bin/edulab-browser \
+    /usr/local/bin/edulab-open-quick-settings
 
   if [[ -f "$SCRIPT_DIR/apply-desktop-style.sh" ]]; then
     run install -m 0755 "$SCRIPT_DIR/apply-desktop-style.sh" /usr/local/bin/edulab-apply-desktop-style

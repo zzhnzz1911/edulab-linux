@@ -27,7 +27,7 @@ window {
   background: #242424;
   color: #f3f3f3;
   border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .tile {
@@ -91,13 +91,12 @@ scale slider {
   border-radius: 9px;
   border: 0;
   background: #1597e5;
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.14);
 }
 
 .footer {
   background: #202020;
   color: #f3f3f3;
-  border-radius: 0 0 8px 8px;
+  border-radius: 0;
 }
 
 .footer-label {
@@ -305,11 +304,14 @@ class QuickSettingsMenu(Gtk.Window):
     self.mapped_at = time.monotonic()
     self.updating = False
     self.connect("focus-in-event", self.on_focus_in)
-    self.connect("focus-out-event", lambda *_: Gtk.main_quit())
+    self.connect("focus-out-event", self.on_focus_out)
     self.connect("key-press-event", self.on_key_press)
 
     css_provider = Gtk.CssProvider()
-    css_provider.load_from_data(CSS)
+    try:
+      css_provider.load_from_data(CSS)
+    except GLib.Error:
+      css_provider.load_from_data(b".root { background: #242424; color: #f3f3f3; }")
     Gtk.StyleContext.add_provider_for_screen(
       Gdk.Screen.get_default(),
       css_provider,
@@ -502,8 +504,20 @@ class QuickSettingsMenu(Gtk.Window):
       return True
     return False
 
+  def raise_window(self):
+    gdk_window = self.get_window()
+    if gdk_window is not None:
+      gdk_window.raise_()
+    self.present()
+    self.grab_focus()
+    return False
+
   def on_focus_in(self, *_args):
     self.had_focus = True
+    return False
+
+  def on_focus_out(self, *_args):
+    GLib.timeout_add(220, self.close_when_unfocused)
     return False
 
   def close_when_unfocused(self):
@@ -531,14 +545,28 @@ def process_alive(pid):
     return False
 
 
+def process_is_ours(pid):
+  try:
+    with open(f"/proc/{pid}/cmdline", "rb") as handle:
+      cmdline = handle.read().replace(b"\x00", b" ").decode("utf-8", errors="ignore")
+  except OSError:
+    return True
+  return "edulab-quick-settings-menu" in cmdline or "edulab-quick-settings-menu.py" in cmdline
+
+
 def toggle_existing_menu():
   pid = existing_menu_pid()
-  if pid and pid != os.getpid() and process_alive(pid):
+  if pid and pid != os.getpid() and process_alive(pid) and process_is_ours(pid):
     try:
       os.kill(pid, signal.SIGTERM)
     except OSError:
       pass
     return True
+  if pid and not process_alive(pid):
+    try:
+      os.remove(PID_FILE)
+    except OSError:
+      pass
   return False
 
 
@@ -568,6 +596,8 @@ def main():
   window.show_all()
   window.present()
   window.grab_focus()
+  GLib.idle_add(window.raise_window)
+  GLib.timeout_add(140, window.raise_window)
   Gtk.main()
   remove_pid_file()
   return 0

@@ -125,7 +125,9 @@ input_menu_command() {
 }
 
 quick_settings_menu_command() {
-  if command -v edulab-quick-settings-menu >/dev/null 2>&1; then
+  if command -v edulab-open-quick-settings >/dev/null 2>&1; then
+    printf '%s\n' "edulab-open-quick-settings"
+  elif command -v edulab-quick-settings-menu >/dev/null 2>&1; then
     printf '%s\n' "edulab-quick-settings-menu"
   elif [[ -f "$SCRIPT_DIR/edulab-quick-settings-menu.py" ]]; then
     printf '%s\n' "python3 \"$SCRIPT_DIR/edulab-quick-settings-menu.py\""
