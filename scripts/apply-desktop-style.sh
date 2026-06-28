@@ -150,6 +150,31 @@ EOF
   printf '%s\n' "$icon_path"
 }
 
+configure_verve_search_plugin() {
+  local id="$1"
+  local config_dir="$HOME/.config/xfce4/panel"
+  local rc_file="$config_dir/verve-$id.rc"
+
+  mkdir -p "$config_dir"
+  cat > "$rc_file" <<'EOF'
+size=30
+label=Ask me anything
+foreground-color=rgb(24,24,24)
+background-color=rgb(242,242,242)
+base-color=rgb(242,242,242)
+history-length=25
+use-url=true
+use-email=false
+use-dir=true
+use-wordexp=true
+use-bang=false
+use-backslash=false
+use-smartbookmark=false
+use-shell=true
+smartbookmark-url=
+EOF
+}
+
 backup_xfce_panel() {
   local src="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml"
   local dst_dir="$HOME/.config/edulab/backups"
@@ -283,6 +308,16 @@ EOF
   color: #f8fafc;
 }
 
+.xfce4-panel entry {
+  min-height: 28px;
+  border-radius: 0;
+  border: 0;
+  padding-left: 10px;
+  padding-right: 10px;
+  background-color: #f2f2f2;
+  color: #202020;
+}
+
 #whiskermenu-button {
   min-width: 48px;
   padding-left: 14px;
@@ -351,7 +386,12 @@ apply_xfce_taskbar() {
     id=$((id + 1))
   fi
 
-  if create_panel_launcher "$id" "search.desktop" "Ask me anything" "$start_command" "system-search" "Utility;" "true"; then
+  if panel_plugin_available verve; then
+    set_panel_plugin_type "$id" verve
+    configure_verve_search_plugin "$id"
+    ids+=("$id")
+    id=$((id + 1))
+  elif create_panel_launcher "$id" "search.desktop" "Ask me anything" "$start_command" "system-search" "Utility;" "true"; then
     ids+=("$id")
     id=$((id + 1))
   fi

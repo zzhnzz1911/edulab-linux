@@ -270,7 +270,6 @@ class StartMenu(Gtk.Window):
 
     self.app_entries = self.build_app_entries()
     self.current_results = []
-    self.search_entry = None
     self.apps_list = None
     self.rail = None
     self.rail_expanded = False
@@ -380,13 +379,6 @@ class StartMenu(Gtk.Window):
     self.apps_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
     scroller.add(self.apps_list)
     apps.pack_start(scroller, True, True, 0)
-
-    self.search_entry = Gtk.SearchEntry()
-    self.search_entry.set_placeholder_text("Ask me anything")
-    self.search_entry.connect("search-changed", self.on_search_changed)
-    self.search_entry.connect("activate", self.on_search_activate)
-    add_class(self.search_entry, "search-entry")
-    apps.pack_start(self.search_entry, False, False, 8)
 
     self.populate_apps("")
     return apps
@@ -601,8 +593,6 @@ def main():
   window = StartMenu()
   window.show_all()
   window.present()
-  if window.search_entry:
-    window.search_entry.grab_focus()
   Gtk.main()
   return 0
 

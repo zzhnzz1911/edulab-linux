@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 import os
+import signal
 import subprocess
 import sys
+import time
 
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, Gtk
+from gi.repository import Gdk, GLib, Gtk
 
 
 WIDTH = 310
 HEIGHT = 128
 TASKBAR_HEIGHT = 40
+PID_FILE = f"/tmp/edulab-input-menu-{os.getuid()}.pid"
 
 
 CSS = b"""
@@ -95,12 +98,17 @@ class InputMenu(Gtk.Window):
     self.set_resizable(False)
     self.set_skip_taskbar_hint(True)
     self.set_skip_pager_hint(True)
+    self.set_accept_focus(True)
+    self.set_focus_on_map(True)
     self.set_keep_above(True)
-    self.set_type_hint(Gdk.WindowTypeHint.POPUP_MENU)
+    self.set_type_hint(Gdk.WindowTypeHint.UTILITY)
     self.set_default_size(WIDTH, HEIGHT)
     self.set_size_request(WIDTH, HEIGHT)
+    self.had_focus = False
+    self.connect("focus-in-event", self.on_focus_in)
     self.connect("focus-out-event", lambda *_: Gtk.main_quit())
     self.connect("key-press-event", self.on_key_press)
+    self.mapped_at = time.monotonic()
 
     css_provider = Gtk.CssProvider()
     css_provider.load_from_data(CSS)
@@ -130,6 +138,7 @@ class InputMenu(Gtk.Window):
     )
 
     self.position_window()
+    GLib.timeout_add(300, self.close_when_unfocused)
 
   def row(self, code, name, sub, engine, active):
     button = Gtk.Button()
@@ -167,14 +176,74 @@ class InputMenu(Gtk.Window):
       return True
     return False
 
+  def on_focus_in(self, *_args):
+    self.had_focus = True
+    return False
+
+  def close_when_unfocused(self):
+    if time.monotonic() - self.mapped_at < 0.7:
+      return True
+    if self.had_focus and not self.is_active() and not self.has_toplevel_focus():
+      Gtk.main_quit()
+      return False
+    return True
+
+
+def existing_menu_pid():
+  try:
+    with open(PID_FILE, "r", encoding="utf-8") as handle:
+      return int(handle.read().strip())
+  except (OSError, ValueError):
+    return None
+
+
+def process_alive(pid):
+  try:
+    os.kill(pid, 0)
+    return True
+  except OSError:
+    return False
+
+
+def toggle_existing_menu():
+  pid = existing_menu_pid()
+  if pid and pid != os.getpid() and process_alive(pid):
+    try:
+      os.kill(pid, signal.SIGTERM)
+    except OSError:
+      pass
+    return True
+  return False
+
+
+def write_pid_file():
+  try:
+    with open(PID_FILE, "w", encoding="utf-8") as handle:
+      handle.write(str(os.getpid()))
+  except OSError:
+    pass
+
+
+def remove_pid_file():
+  if existing_menu_pid() == os.getpid():
+    try:
+      os.remove(PID_FILE)
+    except OSError:
+      pass
+
 
 def main():
   if "DISPLAY" not in os.environ:
     return 1
+  if toggle_existing_menu():
+    return 0
+  write_pid_file()
   window = InputMenu()
   window.show_all()
   window.present()
+  window.grab_focus()
   Gtk.main()
+  remove_pid_file()
   return 0
 
 

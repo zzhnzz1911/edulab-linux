@@ -299,7 +299,7 @@ install_base_packages() {
     fonts-liberation fonts-crosextra-carlito fonts-crosextra-caladea \
     ibus ibus-gtk ibus-gtk3 ibus-gtk4 ibus-unikey im-config language-pack-vi \
     network-manager-gnome \
-    arc-theme papirus-icon-theme thunar thunar-volman xfce4-whiskermenu-plugin \
+    arc-theme papirus-icon-theme thunar thunar-volman xfce4-whiskermenu-plugin xfce4-verve-plugin \
     xfce4-pulseaudio-plugin xfce4-power-manager xfce4-power-manager-plugins xfce4-notifyd \
     file-roller p7zip-full unzip
 }
@@ -412,7 +412,7 @@ install_helper_scripts() {
 # Chạy một lần khi user đăng nhập để áp theme và bộ gõ.
 set -u
 
-MARKER="$HOME/.config/edulab/desktop-style-v9.done"
+MARKER="$HOME/.config/edulab/desktop-style-v10.done"
 mkdir -p "$HOME/.config/edulab"
 if [[ -f "$MARKER" ]]; then
   exit 0
