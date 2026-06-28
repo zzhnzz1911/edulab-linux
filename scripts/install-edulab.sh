@@ -298,7 +298,7 @@ install_base_packages() {
     fonts-dejavu fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji \
     fonts-liberation fonts-crosextra-carlito fonts-crosextra-caladea \
     ibus ibus-gtk ibus-gtk3 ibus-gtk4 ibus-unikey im-config language-pack-vi \
-    network-manager-gnome \
+    network-manager-gnome pulseaudio-utils pavucontrol \
     arc-theme papirus-icon-theme thunar thunar-volman xfce4-whiskermenu-plugin \
     xfce4-pulseaudio-plugin xfce4-power-manager xfce4-power-manager-plugins xfce4-notifyd \
     file-roller p7zip-full unzip
@@ -412,7 +412,7 @@ install_helper_scripts() {
 # Chạy một lần khi user đăng nhập để áp theme và bộ gõ.
 set -u
 
-MARKER="$HOME/.config/edulab/desktop-style-v21.done"
+MARKER="$HOME/.config/edulab/desktop-style-v22.done"
 mkdir -p "$HOME/.config/edulab"
 if [[ -f "$MARKER" ]]; then
   exit 0
@@ -522,6 +522,18 @@ exec xdg-open "${1:-about:blank}"
     run install -m 0755 "$SCRIPT_DIR/edulab-input-menu.py" /usr/local/bin/edulab-input-menu
   else
     log "CẢNH BÁO: Không tìm thấy scripts/edulab-input-menu.py, bỏ qua menu bộ gõ tùy biến."
+  fi
+
+  if [[ -f "$SCRIPT_DIR/edulab-volume-menu.py" ]]; then
+    run install -m 0755 "$SCRIPT_DIR/edulab-volume-menu.py" /usr/local/bin/edulab-volume-menu
+  else
+    log "CẢNH BÁO: Không tìm thấy scripts/edulab-volume-menu.py, bỏ qua menu âm lượng tùy biến."
+  fi
+
+  if [[ -f "$SCRIPT_DIR/edulab-notification-menu.py" ]]; then
+    run install -m 0755 "$SCRIPT_DIR/edulab-notification-menu.py" /usr/local/bin/edulab-notification-menu
+  else
+    log "CẢNH BÁO: Không tìm thấy scripts/edulab-notification-menu.py, bỏ qua menu thông báo tùy biến."
   fi
 
   run rm -f /usr/local/bin/edulab-search

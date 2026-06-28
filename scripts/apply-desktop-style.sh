@@ -124,6 +124,26 @@ input_menu_command() {
   fi
 }
 
+volume_menu_command() {
+  if command -v edulab-volume-menu >/dev/null 2>&1; then
+    printf '%s\n' "edulab-volume-menu"
+  elif [[ -f "$SCRIPT_DIR/edulab-volume-menu.py" ]]; then
+    printf '%s\n' "python3 \"$SCRIPT_DIR/edulab-volume-menu.py\""
+  else
+    printf '%s\n' "pavucontrol"
+  fi
+}
+
+notification_menu_command() {
+  if command -v edulab-notification-menu >/dev/null 2>&1; then
+    printf '%s\n' "edulab-notification-menu"
+  elif [[ -f "$SCRIPT_DIR/edulab-notification-menu.py" ]]; then
+    printf '%s\n' "python3 \"$SCRIPT_DIR/edulab-notification-menu.py\""
+  else
+    printf '%s\n' "xfce4-notifyd-config"
+  fi
+}
+
 browser_icon_name() {
   if command -v google-chrome-stable >/dev/null 2>&1 || command -v google-chrome >/dev/null 2>&1; then
     printf '%s\n' "google-chrome"
@@ -145,6 +165,37 @@ create_input_indicator_icon() {
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
   <rect width="64" height="64" fill="none"/>
   <text x="32" y="41" text-anchor="middle" font-family="Segoe UI, Noto Sans, Arial, sans-serif" font-size="27" font-weight="700" fill="#f8fafc">ENG</text>
+</svg>
+EOF
+  printf '%s\n' "$icon_path"
+}
+
+create_volume_indicator_icon() {
+  local icon_dir="$HOME/.config/edulab/icons"
+  local icon_path="$icon_dir/volume-win10.svg"
+
+  mkdir -p "$icon_dir"
+  cat > "$icon_path" <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="none"/>
+  <path d="M9 26h11l15-12v36L20 38H9z" fill="#f8fafc"/>
+  <path d="M42 22c4 5 4 15 0 20" fill="none" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+  <path d="M49 15c8 10 8 24 0 34" fill="none" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+</svg>
+EOF
+  printf '%s\n' "$icon_path"
+}
+
+create_notification_indicator_icon() {
+  local icon_dir="$HOME/.config/edulab/icons"
+  local icon_path="$icon_dir/notifications-win10.svg"
+
+  mkdir -p "$icon_dir"
+  cat > "$icon_path" <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="none"/>
+  <path d="M20 27c0-8 5-14 12-14s12 6 12 14v10l6 8H14l6-8z" fill="#f8fafc"/>
+  <path d="M27 49h10c-1 4-3 6-5 6s-4-2-5-6z" fill="#f8fafc"/>
 </svg>
 EOF
   printf '%s\n' "$icon_path"
@@ -441,6 +492,10 @@ apply_xfce_taskbar() {
   local browser_icon
   local input_icon
   local input_command
+  local volume_icon
+  local volume_command
+  local notification_icon
+  local notification_command
   local search_label="Ask me anything                 "
 
   if ! command -v edulab-start-menu >/dev/null 2>&1; then
@@ -497,13 +552,25 @@ apply_xfce_taskbar() {
   id=$((id + 1))
 
   local plugin
-  for plugin in systray power-manager-plugin pulseaudio; do
+  for plugin in systray power-manager-plugin; do
     if panel_plugin_available "$plugin"; then
       set_panel_plugin_type "$id" "$plugin"
       ids+=("$id")
       id=$((id + 1))
     fi
   done
+
+  volume_icon="$(create_volume_indicator_icon)"
+  volume_command="$(volume_menu_command)"
+  if create_panel_launcher "$id" "volume.desktop" "Volume" "$volume_command" "$volume_icon" "Utility;"; then
+    xfconf_set xfce4-panel "/plugins/plugin-$id/disable-tooltips" bool "true"
+    ids+=("$id")
+    id=$((id + 1))
+  elif panel_plugin_available pulseaudio; then
+    set_panel_plugin_type "$id" pulseaudio
+    ids+=("$id")
+    id=$((id + 1))
+  fi
 
   input_icon="$(create_input_indicator_icon)"
   input_command="$(input_menu_command)"
@@ -513,14 +580,30 @@ apply_xfce_taskbar() {
     id=$((id + 1))
   fi
 
-  for plugin in clock notification-plugin showdesktop; do
+  if panel_plugin_available clock; then
+    set_panel_plugin_type "$id" clock
+    xfconf_set xfce4-panel "/plugins/plugin-$id/mode" uint "2"
+    xfconf_set xfce4-panel "/plugins/plugin-$id/digital-format" string "%H:%M"
+    xfconf_set xfce4-panel "/plugins/plugin-$id/tooltip-format" string "%A, %d/%m/%Y"
+    ids+=("$id")
+    id=$((id + 1))
+  fi
+
+  notification_icon="$(create_notification_indicator_icon)"
+  notification_command="$(notification_menu_command)"
+  if create_panel_launcher "$id" "notifications.desktop" "Notifications" "$notification_command" "$notification_icon" "Utility;"; then
+    xfconf_set xfce4-panel "/plugins/plugin-$id/disable-tooltips" bool "true"
+    ids+=("$id")
+    id=$((id + 1))
+  elif panel_plugin_available notification-plugin; then
+    set_panel_plugin_type "$id" notification-plugin
+    ids+=("$id")
+    id=$((id + 1))
+  fi
+
+  for plugin in showdesktop; do
     if panel_plugin_available "$plugin"; then
       set_panel_plugin_type "$id" "$plugin"
-      if [[ "$plugin" == "clock" ]]; then
-        xfconf_set xfce4-panel "/plugins/plugin-$id/mode" uint "2"
-        xfconf_set xfce4-panel "/plugins/plugin-$id/digital-format" string "%H:%M"
-        xfconf_set xfce4-panel "/plugins/plugin-$id/tooltip-format" string "%A, %d/%m/%Y"
-      fi
       ids+=("$id")
       id=$((id + 1))
     fi
