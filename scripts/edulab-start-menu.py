@@ -726,9 +726,9 @@ class TaskbarSearch(Gtk.Window):
     GLib.timeout_add_seconds(2, self.keep_positioned)
 
   def position_window(self):
-    geometry = primary_monitor_geometry()
-    x = geometry.x + START_BUTTON_WIDTH
-    y = geometry.y + geometry.height - TASKBAR_HEIGHT
+    workarea = primary_monitor_workarea()
+    x = workarea.x + START_BUTTON_WIDTH
+    y = workarea.y + workarea.height
     self.move(max(x, 0), max(y, 0))
 
   def keep_positioned(self):
